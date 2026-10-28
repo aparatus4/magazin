@@ -24,7 +24,12 @@ const sections = [
 const browser = await chromium.launch({
   executablePath: resolveChromePath(),
   headless: true,
-  args: ['--enable-webgl', '--ignore-gpu-blocklist', '--use-angle=swiftshader'],
+  args: [
+    '--enable-webgl',
+    '--ignore-gpu-blocklist',
+    '--use-angle=swiftshader',
+    '--disable-dev-shm-usage',
+  ],
 })
 
 try {

@@ -9,19 +9,30 @@ const executablePath = resolveChromePath()
 const browser = await chromium.launch({
   executablePath,
   headless: true,
-  args: ['--enable-webgl', '--ignore-gpu-blocklist', '--use-angle=swiftshader'],
+  args: [
+    '--enable-webgl',
+    '--ignore-gpu-blocklist',
+    '--use-angle=swiftshader',
+    '--disable-dev-shm-usage',
+  ],
 })
 
 const errors = []
 let passed = 0
+let total = 0
 const check = async (name, fn) => {
+  total += 1
   try {
     await fn()
     passed += 1
     console.log(`PASS  ${name}`)
   } catch (error) {
+    const message = error.message.split('\n')[0]
     console.log(`FAIL  ${name}`)
-    console.log(`      ${error.message.split('\n')[0]}`)
+    console.log(`      ${message}`)
+    if (process.env.GITHUB_ACTIONS === 'true') {
+      console.log(`::error title=Functional check failed::${name}: ${message}`)
+    }
     process.exitCode = 1
   }
 }
@@ -198,5 +209,15 @@ await check('mobile menu expands a category and links into the collection', asyn
 await browser.close()
 fs.rmSync('shots/test-brief.txt', { force: true })
 
-assert.deepEqual(errors, [])
-console.log(`\n${passed} checks passed.`)
+if (errors.length > 0) {
+  console.log(`\nBrowser errors (${errors.length}):`)
+  for (const error of errors) {
+    console.log(`  ${error}`)
+    if (process.env.GITHUB_ACTIONS === 'true') {
+      console.log(`::error title=Browser error::${error}`)
+    }
+  }
+  process.exitCode = 1
+}
+
+console.log(`\n${passed}/${total} checks passed.`)

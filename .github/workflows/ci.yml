@@ -55,21 +55,23 @@ jobs:
       - name: Typecheck
         run: pnpm typecheck
 
-      - name: Start legacy dev server
+      - name: Legacy functional checks
         run: |
           pnpm dev:legacy > /tmp/legacy-dev.log 2>&1 &
+          server_pid=$!
+          trap 'kill "$server_pid" 2>/dev/null || true' EXIT
           for attempt in $(seq 1 60); do
             if curl -fsS http://127.0.0.1:5173 > /dev/null; then
-              exit 0
+              break
             fi
             sleep 1
           done
-          echo "Legacy dev server did not start" >&2
-          cat /tmp/legacy-dev.log >&2
-          exit 1
-
-      - name: Legacy functional checks
-        run: pnpm test:legacy
+          if ! curl -fsS http://127.0.0.1:5173 > /dev/null; then
+            echo "Legacy dev server did not start" >&2
+            cat /tmp/legacy-dev.log >&2
+            exit 1
+          fi
+          pnpm test:legacy
 
       # TODO(Phase 0/8.7.5): add scripts/security/check-invariants.sh,
       # migration drift checks, and the hostile-fixture suite once those
