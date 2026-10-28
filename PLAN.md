@@ -6,7 +6,7 @@
 >
 > **Status:** Static concept site complete. Medusa v2 architecture corrections, implementation-ready Phase 1–4 specifications, and adopted security hardening are documented; implementation not started.
 >
-> **Next action:** Review the open decisions in Sections 3 and 11, then complete the remaining Phase 0 workspace/runtime/hosting setup.
+> **Next action:** Review the remaining decisions, resolve the mobile-menu baseline timeout, then complete Phase 0 workspace/runtime/hosting setup.
 
 ---
 
@@ -34,11 +34,11 @@
 | Field | Value |
 | --- | --- |
 | Current phase | **Phase 0 — Foundation** |
-| State | Planning complete — Sections 5–6 corrected, Phases 1–4 specified, and Section 8.7 security POV adopted; awaiting business/infrastructure/security decisions; implementation not started |
-| Next action | Review Section 3 and Section 11 decisions, then complete Phase 0 workspace/runtime/hosting setup |
-| Blocking decisions | Phase 0: catalog depth, portrait pricing, custom-quote rules, CMS, hosting/accounts. Before Phase 3: private-asset delivery, retention periods, staff roles, hard upload-size gateway. |
+| State | Planning complete — Sections 5–6 and Phases 1–4 include the initial and payment-hardening security POVs, including capture reconciliation and retry/idempotency controls; implementation not started |
+| Next action | Review remaining Section 3 and Section 11 decisions, resolve staff roles before the first Commission migration, clear the mobile-menu baseline timeout, then finish Phase 0 workspace/runtime/hosting setup |
+| Blocking decisions | Phase 0: catalog depth, portrait pricing, custom-quote rules, CMS, hosting/accounts. Before the first Commission DML migration: staff-role policy. Before enabling cancellation/refund commands: cancellation/refund policy. Before Phase 3 release: private-asset delivery, retention periods, and hard upload-size gateway. |
 | Current app | Vite + React concept storefront at `http://127.0.0.1:5173` |
-| Current verification | `npm run build` passes; `node scripts/functional-test.mjs` passes 13/13 |
+| Current verification | `npm run build` passes; `node scripts/functional-test.mjs` passes 12/13 on two runs; mobile-menu category expansion times out. |
 | Workspace | `E:\dev\rob\maga` (Windows, PowerShell; current Node 20.10 must be upgraded to the pinned Medusa-supported runtime in Phase 0) |
 
 ### 0.2 Resume protocol
@@ -183,7 +183,7 @@ Product principles:
 - Mobile homepage height: roughly **18,500 px at 390 px wide** (about 22 screens).
 - Production JS: **920.13 kB** (252.11 kB gzip); CSS: **115.52 kB** (21.54 kB gzip).
 - Images: 20 files, about **0.9 MB total**, average 44 kB.
-- Functional suite: **13/13 passing**.
+- Functional suite: **12/13 on two runs (2026-10-28)**; mobile-menu category expansion timed out. Track the regression in Phase 0.
 - Build: passing.
 
 ### 1.5 Known constraints and quirks
@@ -760,7 +760,7 @@ Use consent-gated analytics; send server-side purchase events where possible. Do
 | **Postgres (Neon)** | Medusa database | `DATABASE_URL` | 1 |
 | **Redis (Upstash)** | Workflows, events, caching | `REDIS_URL` | 1 |
 | **Stripe** | Payments, deposits, webhooks | `STRIPE_API_KEY`, `STRIPE_WEBHOOK_SECRET`, `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY` | 1/2 |
-| **Cloudflare R2 / S3** | Public product images/GLBs plus isolated private staging/quarantine | Public: `R2_PUBLIC_ENDPOINT`, `R2_PUBLIC_BUCKET`, `R2_PUBLIC_ACCESS_KEY_ID`, `R2_PUBLIC_SECRET_ACCESS_KEY`, `R2_PUBLIC_URL`; private: `R2_PRIVATE_ENDPOINT`, `R2_PRIVATE_REGION`, `R2_UPLOAD_STAGING_BUCKET`, `R2_UPLOAD_STAGING_ACCESS_KEY_ID`, `R2_UPLOAD_STAGING_SECRET_ACCESS_KEY`, `R2_UPLOAD_QUARANTINE_BUCKET`, `R2_UPLOAD_QUARANTINE_ACCESS_KEY_ID`, `R2_UPLOAD_QUARANTINE_SECRET_ACCESS_KEY`, `R2_WORKER_ACCESS_KEY_ID`, `R2_WORKER_SECRET_ACCESS_KEY`, `UPLOAD_INTENT_SECRET` | 1/3/4 |
+| **Cloudflare R2 / S3** | Public product images/GLBs plus isolated private staging/quarantine | Public: `R2_PUBLIC_ENDPOINT`, `R2_PUBLIC_BUCKET`, `R2_PUBLIC_ACCESS_KEY_ID`, `R2_PUBLIC_SECRET_ACCESS_KEY`, `R2_PUBLIC_URL`; private: `R2_PRIVATE_ENDPOINT`, `R2_PRIVATE_REGION`, `R2_UPLOAD_STAGING_BUCKET`, `R2_UPLOAD_STAGING_ACCESS_KEY_ID`, `R2_UPLOAD_STAGING_SECRET_ACCESS_KEY`, `R2_UPLOAD_QUARANTINE_BUCKET`, `R2_UPLOAD_QUARANTINE_ACCESS_KEY_ID`, `R2_UPLOAD_QUARANTINE_SECRET_ACCESS_KEY`, `R2_WORKER_ACCESS_KEY_ID`, `R2_WORKER_SECRET_ACCESS_KEY`, `R2_DOWNLOAD_SIGNER_ACCESS_KEY_ID`, `R2_DOWNLOAD_SIGNER_SECRET_ACCESS_KEY`, `UPLOAD_INTENT_SECRET` | 1/3/4 |
 | **Resend** | Transactional email, stage notifications | `RESEND_API_KEY`, `RESEND_FROM` | 1/3 |
 | **Meilisearch** | Product/category/project search | `MEILISEARCH_HOST`, `MEILISEARCH_API_KEY` | 2 |
 | **Sanity** | Projects, journal, materials, homepage | `SANITY_PROJECT_ID`, `SANITY_DATASET`, `SANITY_API_TOKEN` | 5 |
@@ -908,7 +908,7 @@ This section adopts the adversarial review as the security POV for Phases 3 and 
 | A3 | Customer 3D models (quote flow) | Frequently unreleased industrial design under NDA. |
 | A4 | Payment state (deposit/balance) | Direct revenue; a forged "paid" is a shipped-for-free bug. |
 | A5 | Pricing rules and margin basis points | Competitive; also the input to under-pricing attacks. |
-| A6 | Admin sessions, Stripe webhook secret, R2 credentials, worker credential | Full compromise of everything above. |
+| A6 | Admin sessions, Stripe webhook secret, R2 credentials, worker credential, private-download signer | Full compromise of everything above. |
 | A7 | Quote/commission status and revision history | Dispute evidence; drives production and shipping. |
 
 ##### Trust boundaries
@@ -963,7 +963,7 @@ Each invariant has an enforcement point and a CI check (8.7.5). Violating one is
 | T-08 | B9→B10 | Replay a captured payment provider event. | A | High | Native Medusa Stripe provider verification plus charge/payment/capture idempotency and aggregate_version CAS | Duplicate delivery ×5 through the Medusa provider |
 | T-09 | B9→B10 | Deliver `charge.refunded` before a later success event; commission ends "paid" after refund. | A | Med | Re-fetch authoritative Medusa Payment/Capture/Refund state; hold if net captured funds fail policy | Out-of-order test |
 | T-10 | B1→B3 | Double-click "pay balance" → two carts → two charges. | S | High | Unique partial index on active balance charge; `Idempotency-Key` | Concurrent curl |
-| T-11 | B1→B3 | Accept a quote at revision 3 while staff is revising to 4; pay the old price. | A | Med | `expected_revision` CAS; price re-derivation; `PRICE_DRIFT` 409 | Race test |
+| T-11 | B1→B3 | Accept a quote at `spec_revision=3` while staff is revising to 4; pay the old price. | A | Med | `expected_aggregate_version` + `accepted_spec_revision` CAS; price re-derivation; `PRICE_DRIFT` 409 | Race test |
 | T-12 | B1→B3 | Tamper `line_item.metadata.quote_id` in the cart to a cheaper quote. | A | Med | Metadata is a claim; resolve via `quote-cart` link; recompute | Cart tamper test |
 | T-13 | B8 | 3MF zip bomb: 200 KiB archive → 8 GiB inflated → worker OOM → queue stalls → all uploads fail. | A | High | Streaming inflate with counting abort; 512 MiB cap; 20:1 ratio | `bomb.3mf` fixture |
 | T-14 | B8 | `[Content_Types].xml` billion-laughs. | A | Med | `defusedxml`, `forbid_dtd/entities/external`, XML byte + element caps | `laughs.3mf` fixture |
@@ -992,9 +992,9 @@ Severity: **P0** blocks Phase 3/4 sign-off, **P1** must land in the same PR as t
 
 | ID | Sev | Location | Finding | Required fix |
 | --- | --- | --- | --- | --- |
-| F-01 | P0 | §9.6 CommissionCharge | No payment collection/session/payment mapping or charge status exists, so payment.captured cannot deterministically resolve one custom charge. | Add payment_collection_id, payment_session_id, payment_id, and status; link Charge↔Payment Collection where supported and resolve through Medusa Query/Link APIs. Do not depend on arbitrary Stripe PaymentIntent metadata or a second webhook. |
-| F-02 | P0 | §9.6 `CommissionCharge` | No uniqueness: two concurrent balance checkouts create two charges and two carts. | Unique partial index `(commission_id, purpose) WHERE status NOT IN ('canceled','expired')`; `Idempotency-Key` on checkout creation. |
-| F-03 | P0 | §9.6 state machine | `deposit_pending → sculpting` is driven by a payment event but no guard asserts the deposit actually captured, at the right amount, in the right currency. A duplicate or forged event starts production. | Guard: `deposit_charge.status='captured' AND amount_minor = commission.deposit_minor AND currency_code = commission.currency_code`. |
+| F-01 | P0 | §9.6 CommissionCharge | No payment collection/session/payment mapping or charge status exists, so payment.captured cannot deterministically resolve one custom charge. | Resolve Medusa Payment by `payment_collection_id`, then resolve exactly one CommissionCharge through the Payment Collection Module Link. Persist payment/session IDs as assertions. Stripe metadata is an optional assertion only, never a resolver; do not add a second webhook. |
+| F-02 | P0 | §9.6 `CommissionCharge` | No uniqueness: two concurrent balance checkouts create two charges and two carts. | Add one active `(commission_id, purpose)` partial unique index and `Idempotency-Key`; exclude only `canceled`, `expired`, and audited `mismatch_resolved`. A `mismatch` remains blocking until provider exposure is audited and resolved. |
+| F-03 | P0 | §9.6 state machine | `deposit_pending → sculpting` is driven by a payment event but no guard asserts authoritative capture, exact amount/currency, or refund state. A duplicate or forged event starts production. | Gate with a re-read of linked Medusa Payment/Payment Collection: `captured_at != null`, captured amount exactly equals charge and deposit, currency matches, zero refunds, no dispute, and `payment_hold=false`; the event only wakes reconciliation. |
 | F-04 | P0 | §9.6 state machine | The commission state machine omits cancellation edges after proof review/approval and during production, leaving cancellation behavior undefined. | Add `proof_sent`, `approved`, `printing`, and `finishing → cancelled` edges; make them staff-only and policy-gated, with an audited refund decision and no automatic refund. |
 | F-05 | P1 | §9.7 `QuoteAsset` | The plan permits one model per content revision but does not persist which revision an asset belongs to. | Add `spec_revision`; unique `(quote_id, spec_revision)` for live model assets; key prefix includes the opaque asset identifier. |
 | F-06 | P1 | §9.7 `QuoteAnalysis` | `MeshAnalysisResultSchema` requires `input_sha256` and `job_id`, but the DML has no columns to persist or compare them. | Add `input_sha256` and `job_id`; enforce idempotency on `(asset_id, parser_version, input_sha256)` and compare all worker claims before persist. |
@@ -1012,8 +1012,10 @@ Severity: **P0** blocks Phase 3/4 sign-off, **P1** must land in the same PR as t
 | F-18 | P2 | §9.6 `display_filename` | "Sanitized" undefined; it is echoed in `Content-Disposition` → header injection / extension spoofing. | RFC 5987 encoding + strict charset + forced extension (8.7.3 D). |
 | F-19 | P2 | §8.6 | "Structured logs for uploads" — presigned URLs are the classic leak. | Redaction list; log key hash, not key. |
 | F-20 | P2 | §9.6 deletion | Deletion job deletes R2 objects and marks rows; a Postgres restore then yields rows pointing at deleted objects. | Restore ordering + tombstone + `deleted_at`; verify before restore. |
-| F-21 | P2 | §9.7 | `review_required → processing → review_required` can loop forever; parser retries have no ceiling. | Increment `parse_attempt_count` atomically; when it reaches 3, transition to terminal `rejected` with `reason='retry_exhausted'`. |
-| F-22 | P2 | §5.3 links | `commission-charge-order.ts` is described as "one active cart per charge, multiple charge orders per commission" but `defineLink` defaults to 1:1. | `isList: true` on the Order side of `commission→order` (8.7.3 G). |
+| F-21 | P2 | §9.7 | `review_required → processing → review_required` can loop forever; parser retries have no ceiling. | Increment `parse_attempt_count` only in enqueue-analysis, once per distinct job ID; issue at most three jobs, and after the third failed/timed-out job transition to terminal `rejected` with `reason='retry_exhausted'`. |
+| F-22 | P0 | §8.7.3 H2/H5 | An event-only payment transition can stall when automatic capture has completed but the workflow does not emit the expected `payment.captured` event. | Treat events as wake-ups; re-read `Payment.captured_at`, captured amount, captures, and refunds. Pin `capture: true`; add a 60-second reconciliation job and require an exact-capture guard before production transitions. |
+| F-23 | P0 | §8.7.3 H3 | Provider metadata propagation varies by Medusa release and cannot be a payment-to-charge resolver. | Resolve through `Payment.payment_collection_id` → the one linked Payment Collection → exactly one CommissionCharge. Use Stripe metadata only as an optional mismatch assertion. Payment Collection is the single payment-side anchor; Charge↔Cart is not authoritative. |
+| F-24 | P2 | §5.3 links | A direct CommissionCharge→Order link creates ambiguous payment authority, and a 1:1 Module Link cardinality would not model multiple aggregate orders. | Keep Charge→Payment Collection as the sole payment-side link. If an aggregate Commission→Order link supports multiple orders, define `isList: true` on the Commission linkable. Never create CommissionCharge→Order. |
 
 ---
 
@@ -1134,10 +1136,10 @@ finalized, expired, stale revision, or wrong parent). Then, in order:
 5. Hash mismatch vs the signed checksum → `state='rejected'`, delete both objects, `422 CHECKSUM_MISMATCH`.
 6. `UPDATE ... SET state='quarantined', quarantine_key=$1, sha256=$2 WHERE id=$1 AND state='uploaded'`.
 7. Only now `DeleteObject` the staging key. Copy and delete are separate idempotent steps — never assume a rename.
-8. Enqueue `{ asset_id, quote_id, sha256, idempotency_key }`. Never the URL, never the bytes.
+8. Invoke the Medusa `enqueue-analysis.ts` workflow, which atomically increments `parse_attempt_count`, persists a unique `job_id`, and queues `{ asset_id, quote_id, job_id, spec_revision, sha256 }`. Never enqueue directly from finalize or let the worker update the counter. Never the URL, never the bytes.
 
 Replay of a completed finalize `MUST` return `200` with the stored state when `sha256` matches, and `409`
-otherwise. `parse_attempt_count >= 3` → terminal `rejected`, reason `retry_exhausted` (F-21).
+otherwise. Only `enqueue-analysis.ts` increments `parse_attempt_count`, once per distinct job ID; queue-delivery retries reuse that ID. Issue at most three jobs. A failed third job becomes terminal `rejected` with `retry_exhausted`; no fourth job is enqueued.
 
 ##### C. Download authorization — the IDOR core
 
@@ -1199,7 +1201,10 @@ authorize from `owner_customer_id` alone.
 | `final` | yes | yes | no | `shipped` only |
 | quote `model` | yes | yes | yes | `quarantined` onward |
 
-**C4.** Signing a download:
+**C4.** Signing a download. `downloadSignerClient` is created only in Medusa from the dedicated
+`R2_DOWNLOAD_SIGNER_ACCESS_KEY_ID` / `R2_DOWNLOAD_SIGNER_SECRET_ACCESS_KEY`; scope this credential to read
+private object data only. The worker supervisor's `workerReadClient` is not a download signer and is never used
+to return customer downloads.
 
 ```ts
 const cmd = new GetObjectCommand({
@@ -1209,7 +1214,7 @@ const cmd = new GetObjectCommand({
   ResponseContentDisposition: disposition(a),           // D
   ResponseCacheControl: "private, max-age=300",
 })
-const url = await getSignedUrl(workerReadClient, cmd, { expiresIn: a.role === "source_photo" ? 300 : 120 })
+const url = await getSignedUrl(downloadSignerClient, cmd, { expiresIn: a.role === "source_photo" ? 300 : 120 })
 res.setHeader("Cache-Control", "private, no-store")
 res.setHeader("Referrer-Policy", "no-referrer")
 return Response.redirect(url, 302)
@@ -1356,7 +1361,7 @@ watertight = manifold and boundary_edges == 0
 never a partial persist.
 
 **E10. Timeouts.** Soft deadline 45 s checked between stages and inside the inflate/parse loops; hard kill at 60 s
-by the supervisor. A killed job `MUST` be recorded as `timeout`, not `error`, and counts against `parse_attempt_count`.
+by the supervisor. A killed job `MUST` be recorded as `timeout`, not `error`. Its attempt was already counted by `enqueue-analysis.ts`; the supervisor reports a fixed failure code to Medusa, and neither supervisor nor parser mutates `parse_attempt_count`.
 
 ##### F. Client-side preview (untrusted, cosmetic)
 
@@ -1402,8 +1407,11 @@ export default defineLink(
   { linkable: Order.linkable.order, isList: true }
 )
 
-// apps/medusa/src/links/commission-charge-order.ts — exactly one order per charge
-export default defineLink(CommissionCharge.linkable.commissionCharge, Order.linkable.order)
+// apps/medusa/src/links/commission-charge-payment-collection.ts — sole payment-side charge anchor
+export default defineLink(
+  CommissionCharge.linkable.commissionCharge,
+  PaymentCollection.linkable.paymentCollection
+)
 
 // apps/medusa/src/links/quote-cart.ts — exactly one active cart per quote
 export default defineLink(Quote.linkable.quote, Cart.linkable.cart)
@@ -1420,22 +1428,72 @@ type Actor = { kind: "customer" | "user" | "system" | "worker"; id: string | nul
 
 const GUARDS: Record<string, { actors: Actor["kind"][]; roles?: Role[]; pre?: (r: any) => Promise<void> }> = {
   "brief_received>review":        { actors: ["user"], roles: ["artist", "admin"] },
+  "brief_received>cancelled":     { actors: ["user"], roles: ["finance", "admin"], pre: assertCancellationPolicy },
   "review>quote_sent":            { actors: ["user"], roles: ["finance", "admin"] },
+  "review>cancelled":             { actors: ["user"], roles: ["finance", "admin"], pre: assertCancellationPolicy },
+  "quote_sent>review":            { actors: ["user"], roles: ["finance", "admin"] },
   "quote_sent>deposit_pending":   { actors: ["user"], roles: ["finance", "admin"] },
-  "deposit_pending>sculpting":    { actors: ["system"], pre: assertDepositCaptured },
-  "sculpting>proof_sent":         { actors: ["user"], roles: ["artist", "admin"], pre: assertLatestProof },
+  "quote_sent>cancelled":         { actors: ["user"], roles: ["finance", "admin"], pre: assertCancellationPolicy },
+  "deposit_pending>sculpting":    { actors: ["system", "user"], roles: ["finance", "admin"], pre: assertDepositCaptured },
+  "deposit_pending>cancelled":    { actors: ["user"], roles: ["finance", "admin"], pre: assertCancellationPolicy },
+  "sculpting>proof_sent":         { actors: ["user"], roles: ["artist", "admin"], pre: assertDepositAndLatestProof },
+  "sculpting>cancelled":          { actors: ["user"], roles: ["finance", "admin"], pre: assertCancellationPolicy },
   "proof_sent>approved":          { actors: ["customer"], pre: assertLatestProof },
   "proof_sent>changes_requested": { actors: ["customer"], pre: assertLatestProof },
-  "approved>printing":            { actors: ["user"], roles: ["artist", "admin"] },
+  "proof_sent>cancelled":         { actors: ["user"], roles: ["finance", "admin"], pre: assertCancellationPolicy },
+  "changes_requested>sculpting":  { actors: ["user"], roles: ["artist", "admin"], pre: assertDepositStillCaptured },
+  "changes_requested>cancelled":  { actors: ["user"], roles: ["finance", "admin"], pre: assertCancellationPolicy },
+  "approved>printing":            { actors: ["user"], roles: ["artist", "admin"], pre: assertDepositStillCaptured },
+  "approved>cancelled":           { actors: ["user"], roles: ["finance", "admin"], pre: assertCancellationPolicy },
+  "printing>finishing":           { actors: ["user"], roles: ["artist", "admin"], pre: assertDepositStillCaptured },
+  "printing>cancelled":           { actors: ["user"], roles: ["finance", "admin"], pre: assertCancellationPolicy },
   "finishing>balance_pending":    { actors: ["user"], roles: ["finance", "admin"], pre: assertDepositStillCaptured },
-  "balance_pending>shipped":      { actors: ["user"], roles: ["ops", "admin"], pre: assertBalanceCaptured },
+  "finishing>shipped":            { actors: ["user"], roles: ["ops", "admin"], pre: assertAllChargesSettled },
+  "finishing>cancelled":          { actors: ["user"], roles: ["finance", "admin"], pre: assertCancellationPolicy },
+  "balance_pending>shipped":      { actors: ["user"], roles: ["ops", "admin"], pre: assertAllChargesSettled },
+  "balance_pending>cancelled":    { actors: ["user"], roles: ["finance", "admin"], pre: assertCancellationPolicy },
 }
 
 async function assertDepositCaptured(c: Commission) {
   const ch = await charges.retrieveByPurpose(c.id, "deposit")
-  if (!ch || ch.status !== "captured") throw conflict("DEPOSIT_NOT_CAPTURED")
-  if (ch.amount_minor !== c.deposit_minor) throw conflict("DEPOSIT_AMOUNT_MISMATCH")
-  if (ch.currency_code !== c.currency_code) throw conflict("DEPOSIT_CURRENCY_MISMATCH")
+  if (!ch || ch.status !== "captured" || ch.payment_hold || ch.disputed_at) throw conflict("PAYMENT_HOLD_OR_UNRECONCILED")
+  const payment = await readPaymentTruthFromCollection(ch.payment_collection_id)
+  if (!payment?.captured_at) throw conflict("NOT_CAPTURED")
+  if (payment.captured_amount !== ch.amount_minor || ch.amount_captured_minor !== payment.captured_amount || ch.amount_minor !== c.deposit_minor) throw conflict("AMOUNT_MISMATCH")
+  if (payment.currency_code !== c.currency_code || ch.currency_code !== c.currency_code) throw conflict("CURRENCY_MISMATCH")
+  if (payment.refunded_amount !== 0) throw conflict("PAYMENT_HOLD")
+}
+
+async function assertDepositAndLatestProof(c: Commission) {
+  await assertDepositStillCaptured(c)
+  await assertLatestProof(c)
+}
+
+async function assertDepositStillCaptured(c: Commission) {
+  await assertDepositCaptured(c)
+}
+
+async function assertBalanceCaptured(c: Commission) {
+  if (c.balance_minor === 0) return assertDepositStillCaptured(c)
+  const ch = await charges.retrieveByPurpose(c.id, "balance")
+  if (!ch || ch.status !== "captured" || ch.payment_hold || ch.disputed_at) throw conflict("PAYMENT_HOLD_OR_UNRECONCILED")
+  const payment = await readPaymentTruthFromCollection(ch.payment_collection_id)
+  if (!payment?.captured_at) throw conflict("NOT_CAPTURED")
+  if (payment.captured_amount !== ch.amount_minor || ch.amount_captured_minor !== payment.captured_amount || payment.currency_code !== c.currency_code || ch.currency_code !== c.currency_code) throw conflict("AMOUNT_OR_CURRENCY_MISMATCH")
+  if (payment.refunded_amount !== 0) throw conflict("PAYMENT_HOLD")
+}
+
+async function assertAllChargesSettled(c: Commission) {
+  const chargesForCommission = await charges.listByCommission(c.id)
+  const activeCharges = chargesForCommission.filter(ch => !["canceled", "expired", "mismatch_resolved"].includes(ch.status))
+  if (activeCharges.some(ch => ch.payment_hold || ch.disputed_at || ch.status !== "captured")) throw conflict("PAYMENT_HOLD_OR_UNSETTLED")
+  const pairs = await readPaymentPairsForChargeIds(activeCharges.map(ch => ch.id))
+  if (pairs.length !== activeCharges.length) throw conflict("MISSING_PAYMENT_LINK")
+  for (const { charge, payment } of pairs) {
+    if (!payment?.captured_at || payment.captured_amount !== charge.amount_minor || charge.amount_captured_minor !== payment.captured_amount) throw conflict("PAYMENT_NOT_SETTLED")
+    if (payment.refunded_amount !== 0 || payment.currency_code !== charge.currency_code || charge.currency_code !== c.currency_code) throw conflict("PAYMENT_HOLD_OR_CURRENCY_MISMATCH")
+  }
+  if (pairs.reduce((sum, pair) => sum + pair.payment.captured_amount, 0) !== c.total_minor) throw conflict("AMOUNT_MISMATCH")
 }
 ```
 
@@ -1447,7 +1505,9 @@ module-owned repository operation; (2) checks the transition table, actor/role, 
 (5) creates the append-only QuoteEvent/CommissionEvent before commit. A lost compare-and-set returns typed
 `409 STALE_STATE`. If the pinned Medusa DML repository API cannot express the conditional update/lock, implement
 that one operation in a module-owned transaction-aware repository; SQL may touch only that module's custom
-tables, never Commerce Module tables or Module Link tables. The workflow coordinates cross-module calls and
+tables, never Commerce Module tables or Module Link tables. The only direct status update must be the CAS line in
+`apps/medusa/src/modules/commissions/service.ts` or `quotes/service.ts` and carry the inline marker
+`// @transition: status CAS`; `check-invariants.sh` rejects every unmarked status write. The workflow coordinates cross-module calls and
 compensations; API routes, subscribers, and jobs never write status directly.
 
 ```ts
@@ -1518,23 +1578,23 @@ admin route additionally checks a role via the RBAC module (or an explicit polic
 
 **H1. Native ingress.** Register the Medusa Stripe provider and use its native webhook endpoint at /hooks/payment/stripe_stripe. The provider verifies Stripe signatures and processes provider events. Do not create a second raw Stripe webhook route, duplicate signature-verification pipeline, or parallel Stripe payment ledger.
 
-**H2. Event subscriber.** apps/medusa/src/subscribers/commission-payment.ts consumes payment.captured and payment.refunded events. The event payload is an identifier only. Re-query the Medusa Payment, Capture, Refund, Payment Collection, Payment Session, CommissionCharge, and applicable Module Link records before any transition.
+**H2. Events are wake-ups, not payment truth.** `apps/medusa/src/subscribers/commission-payment.ts` consumes `payment.captured`, `payment.refunded`, and applicable dispute notifications only to invoke the shared reconciliation workflow. The payload is an identifier. Re-query the Medusa Payment, Capture, Refund, Payment Collection, Payment Session, CommissionCharge, and Module Link state before any transition. Independently run `apps/medusa/src/jobs/reconcile-commission-payments.ts` every 60 seconds so a missing event cannot strand captured payment. Automatic capture can complete before `processPaymentWorkflow` runs and may skip its capture event path; never advance production from an event payload.
 
-**H3. Deterministic charge mapping.** At checkout creation, persist payment_collection_id and payment_session_id on CommissionCharge and create a one-to-one Charge↔Payment Collection link where the pinned Medusa Payment Module exposes a linkable collection. After payment.captured, resolve Payment→Payment Collection through Query and resolve that collection to exactly one Charge. Store payment_id and the provider payment ID from Medusa Payment.data for reconciliation. If the mapping is absent, duplicated, or inconsistent, fail closed and alert; never table-scan heuristically.
+**H3. Deterministic charge mapping.** At checkout creation, persist `payment_collection_id` and `payment_session_id` on CommissionCharge and create exactly one Charge↔Payment Collection Module Link. Resolve a Medusa Payment by its `payment_collection_id`; resolve that collection through Query/Module Link to exactly one CommissionCharge. The Payment Collection's native links to Cart and Order are the single payment-side anchor. Commission↔Cart/Order links may describe the aggregate but are not charge-payment authority; do not create or trust Charge↔Cart or Charge↔Order links. Store `payment_id` and `provider_payment_id` as consistency checks. Optional `payment_intent.metadata.commission_charge_id` may be compared only when the pinned provider version propagates custom metadata; mismatch sets `mismatch` and alerts, but metadata is never the resolver. If collection mapping is missing, duplicated, or inconsistent, fail closed; never table-scan heuristically.
 
-**H4. Amount and currency guard.** Convert the Medusa captured amount to integer minor units using the configured currency exponent and decimal.js. Require captured net amount to equal the server charge amount and currency to equal Commission.currency_code before deposit_pending → sculpting or balance_pending → shipped. Unknown currency precision or mismatch sets charge status=mismatch and blocks the transition.
+**H4. Capture truth and amount guard.** Read the current Payment and related Capture/Refund records through Medusa Query/Payment APIs. A charge can transition to `captured` only when `Payment.captured_at` is non-null, `Payment.captured_amount === CommissionCharge.amount_minor`, `Payment.refunded_amount === 0`, and payment/charge/commission currencies match after currency-exponent normalization. `authorized` without `captured_at` remains unpaid and cannot advance production. Missing capture, partial capture, amount/currency mismatch, refund, or payment hold blocks the guard and sets/retains `mismatch` or `payment_hold`; no browser redirect or event payload can satisfy it.
 
-**H5. Atomic charge claim.** In the Commissions custom module transaction, CAS CommissionCharge from requires_payment/processing to captured using charge ID, payment ID, expected amount, and currency; append the charge event in that transaction. A duplicate event returns the already-completed result. Only after the charge claim succeeds may the guarded Commission transition run. If it becomes stale, retain the verified payment and reconcile the workflow; do not duplicate capture or regress state.
+**H5. Atomic charge claim.** In the Commissions custom module transaction, CAS CommissionCharge from `requires_payment|processing|authorized` to `captured` using charge ID, Payment Collection ID, payment ID, exact captured amount, and currency; append a CommissionEvent with a unique `payment_event_key` for each Medusa capture/refund identity in that transaction. Include `authorized` in source states because an authorization without capture must remain unpaid. A duplicate subscriber or reconciliation attempt returns the recorded result. Only after the claim succeeds may a guarded Commission transition run. If the production transition is stale, retain verified Payment truth and retry reconciliation; never capture again or regress state.
 
-**H6. Idempotency.** Use a deterministic idempotency key derived from commission_id, purpose, amount_minor, and pricing_version when creating a charge/cart. Enforce one active charge per (commission_id, purpose) with a partial unique index excluding canceled/expired rows. Payment event side effects deduplicate by charge_id + Medusa payment_id/capture_id, not by a raw Stripe event ID.
+**H6. Idempotency and mismatch recovery.** Use a deterministic idempotency key derived from commission_id, purpose, amount_minor, and pricing_version when creating a charge/cart. The active-charge unique index excludes only `canceled`, `expired`, and audited `mismatch_resolved` rows. A `mismatch` charge remains blocking until an authorized finance workflow re-reads the provider-backed Medusa Payment Collection, verifies zero outstanding/captured exposure or completed refund/void, appends an audit event, and moves it to `mismatch_resolved`; only then may a corrected charge be created. Payment side effects deduplicate by charge + Medusa payment/capture/refund identity, not a raw Stripe event ID.
 
-**H7. Refunds and disputes.** On payment.refunded, re-query Medusa Refund/Capture/Payment totals and recompute net captured funds. If net funds fall below the policy-required deposit, set payment_hold and block production/shipment as defined by the approved commercial policy. Record disputes separately; block shipment until resolved. Do not use a monotonic status rank as a substitute for reconciling current captured/refunded amounts.
+**H7. Refunds, disputes, and holds.** On `payment.refunded` or a dispute notification, re-query Medusa Refund/Capture/Payment totals and recompute net captured funds. Persist `payment_hold` only on affected CommissionCharge rows when the deposit/total falls below policy or a dispute is open; do not add a Commission-level hold field. Every production and shipment guard loads all relevant charges and rejects if any has `payment_hold=true`. `assertBalanceCaptured` rejects a held charge, missing `captured_at`, amount/currency mismatch, or non-zero refunded amount; `assertDepositStillCaptured` applies the equivalent deposit checks. Clear a hold only through a finance/admin workflow after re-reading authoritative Medusa state and appending an audit event. Never use a monotonic status rank instead of current capture/refund totals.
 
-**H8. Balance checkout race.** Require the approved lifecycle state, a captured deposit when required by policy, a current pricing snapshot, and an idempotency key. Compute remaining balance from approved total minus net captured charge amounts. Concurrent duplicate requests return the existing charge/cart/session; they do not create a second Payment Collection or Stripe intent.
+**H8. Balance checkout race.** Require the approved lifecycle state, a fully captured deposit, every relevant CommissionCharge `payment_hold === false`, a current immutable CommissionPriceSnapshot, and an idempotency key. Compute remaining balance from approved total minus net captured amounts re-read through linked Payment Collections; if `balance_minor === 0`, return no checkout and create no charge. Concurrent duplicate requests return the existing charge, Payment Collection, cart, and session; they do not create a second Payment Collection or Stripe intent.
 
-**H9. Environment and provider controls.** Use separate Stripe credentials and provider configuration per environment. Verify the configured provider/region and test/live separation at deployment. Keep capture/refund operations inside Medusa workflows and Payment Module APIs.
+**H9. Provider configuration and version floor.** Configure the Stripe provider with explicit `capture: true` for the launch payment policy: collect the approved deposit at checkout; the deposit percentage remains a separate Section 3 decision. Do not rely on Stripe provider defaults (`capture` defaults to false). Pin every Medusa package to one exact aligned release at or above v2.11.1 if custom Stripe metadata assertions are retained, because PR #13801 added custom metadata propagation; payment resolution remains correct without metadata. Before adopting the exact pin, verify that the chosen release includes the auto-capture cart-completion race fix in PR #13588 and run the capture regression gate. Separate Stripe credentials per environment and verify provider/region/test-live isolation. Capture/refund calls remain inside Medusa workflows and Payment Module APIs. ([Stripe provider options](https://docs.medusajs.com/resources/commerce-modules/payment/payment-provider/stripe), [PR #13801](https://github.com/medusajs/medusa/pull/13801), [PR #13588](https://github.com/medusajs/medusa/pull/13588))
 
-**H10. Verification matrix.** Before Phase 3 sign-off verify: duplicate Medusa payment.captured delivery ×5; stale transition; captured amount mismatch; currency mismatch; unknown or ambiguous Charge link; partial/full refund; refund before subscriber retry; dispute before shipment; deleted Commission; concurrent balance checkout; canceled checkout; and payment reconciliation after worker/job restart.
+**H10. Verification matrix.** Phase 1 Stripe gate: a test payment with `capture: true` results in one captured Medusa Payment with exact amount/currency and no duplicate capture/refund; observe exactly one `payment.captured` event, or prove one reconciliation hit when the event is absent. Before Phase 3 sign-off also test duplicate/out-of-order events ×5; event absent with capture present; event present before Payment state is captured; `authorized` but never captured; automatic-capture double-call regression; stale transition; captured amount mismatch; currency mismatch; missing/ambiguous Payment Collection link; metadata absent/mismatch; partial/full refund; refund before subscriber retry; dispute/`payment_hold` before production or shipment; mismatch resolution then corrected charge; deleted Commission; concurrent balance checkout; canceled checkout; missed scheduled tick; and job restart without duplicated effects. Use only Payment Module data; no direct Stripe Payment Intent calls in custom code.
 ##### I. Rate limits and quotas
 
 Redis token buckets, keyed by both IP and customer, applied at the Medusa middleware and at the Next route.
@@ -1611,9 +1671,12 @@ Cookies: `__Host-forma_session` and `__Host-forma_cart` — `Secure; HttpOnly; S
 
 #### 8.7.4 Validation scripts
 
-##### V1. Hardened mesh-analysis contract (replaces §9.7 `mesh-analysis.ts`)
+##### V1. Canonical `packages/contracts/src/mesh-analysis.ts` contract (single definition)
 
-Fixes F-06 and F-10 and makes `rejected` results expressible without fake bounds.
+This is the only `MeshAnalysisResultSchema` definition. Implement it once at
+`packages/contracts/src/mesh-analysis.ts`; `packages/contracts/src/quote.ts`, Medusa, the worker,
+storefront, and tests import this shared schema/type instead of copying or redefining it. It fixes F-06 and
+F-10 and makes `rejected` results expressible without fake bounds.
 
 ```ts
 import { z } from "zod"
@@ -1716,13 +1779,12 @@ set -euo pipefail
 fail=0
 pass() { printf 'ok   %s\n' "$1"; }
 fail_check() { printf 'FAIL %s\n' "$1"; fail=1; }
+command -v rg >/dev/null 2>&1 || { printf 'FAIL ripgrep is required by this gate\n'; exit 1; }
 
-# I3: only the transition engine writes status
-if rg -n --glob '*.ts' '\.update[A-Za-z]*\(\s*\{[^}]*status:' apps/medusa/src | rg -v 'modules/(quotes|commissions)/service\.ts'; then
-  fail_check "no direct status writes"
-else
-  pass "no direct status writes"
-fi
+# I3: the only direct status CAS lines carry the inline marker in the two module services
+status_writes="$(rg -n --no-heading --glob '*.ts' '\.update[A-Za-z]*\(.*status:' apps/medusa/src || true)"
+marked_writes="$(rg -n --no-heading --glob '*.ts' '\.update[A-Za-z]*\(.*status:.*// @transition: status CAS' apps/medusa/src/modules/commissions/service.ts apps/medusa/src/modules/quotes/service.ts || true)"
+if [[ -n "$status_writes" && "$status_writes" == "$marked_writes" ]]; then pass "status writes are transition-marked CAS only"; else fail_check "unmarked or non-transition status write"; fi
 
 # I9: signed URLs generated in one module only
 signers="$(rg -l --glob '*.ts' 'getSignedUrl' apps/medusa/src || true)"
@@ -1797,7 +1859,7 @@ constraints/indexes inside those custom-module migrations, using the actual gene
 pinned Medusa release:
 
 - CommissionCharge: unique active charge on `(commission_id, purpose)` where status is not `canceled` or
-  `expired`.
+  `expired` or audited `mismatch_resolved`; a `mismatch` remains unique/blocking until the audited resolution workflow confirms provider-side exposure is reconciled.
 - CommissionEvent: unique non-null `payment_event_key` for Medusa payment/capture/refund side-effect deduplication.
 - QuoteAsset: unique live model on `(quote_id, spec_revision)` where state is not `rejected`, `deleted`, `expired`, or `abandoned`.
 - QuoteAnalysis: unique `(asset_id, parser_version, input_sha256)`; `job_id` also uniquely identifies one job result.
@@ -1864,21 +1926,17 @@ Phase 3/4 are not "done" until all of the following are demonstrated on staging,
 | R-6 | Admin XSS = full compromise (Medusa stores its token in `localStorage`) | Framework behaviour | Strict CSP at the standalone Admin origin; no third-party scripts there |
 | R-7 | Link tables have no FK, so dangling rows are possible | Medusa design | `verify-link-consistency.ts` nightly |
 
-**Decisions required before Phase 3 starts**
-
-- D-1: proxy or redirect private assets (recommend proxy for proofs/models, redirect for thumbnails).
-- D-2: retention durations in 8.7.3 K (recommend the table as written, pending legal review).
-- D-3: RBAC granularity (recommend the four roles; a two-person studio can give everyone `admin` but must still
-  have the role column so it can be tightened without a migration).
-- D-4: upload gateway — Cloudflare Worker streaming cap, or accept R-1 with quota alarms.
+- D-1: proxy or redirect private assets (recommend proxy for proofs/models, redirect for thumbnails); resolve before Phase 3 release.
+- D-2: retention durations in 8.7.3 K (recommend the table as written, pending legal review); resolve before Phase 3 release.
+- D-3: RBAC granularity; resolve before the first Commission DML migration.
+- D-4: upload gateway — Cloudflare Worker streaming cap, or accept R-1 with quota alarms; resolve before Phase 4 release.
+- D-5: cancellation/refund policy — define cancellation window, refund/void behavior, and authorizing staff role before enabling cancellation/refund commands.
 
 ---
 
 #### 8.7.7 Mapping to plan tasks
 
-Add to §9.6: `G-1` link cardinality + `owner_customer_id`; `G-2` transition engine + guard table; `G-3` RBAC;
-`G-4` charge columns + unique index; `G-5` native-payment event idempotency; `G-6` marketing consent columns; `G-7` private
-asset proxy; `G-8` retention job + tombstone; `G-9` header/CSP config; `G-10` rate-limit middleware.
+Add to §9.6: `G-1` link cardinality + `owner_customer_id`; `G-2` transition engine + guard table; `G-3` RBAC; `G-4` charge columns + unique index; `G-5` native-payment event idempotency; `G-6` marketing consent columns; `G-7` private asset proxy; `G-8` retention job + tombstone; `G-9` header/CSP config; `G-10` rate-limit middleware; `G-11` 60-second missed-payment-event reconciler.
 
 Add to §9.7: `Q-1` `spec_revision` + unique index; `Q-2` `finalized_at` claim; `Q-3` `input_sha256`/`job_id` +
 unique; `Q-4` `snapshot_sha256`; `Q-5` worker HMAC + nonce; `Q-6` fixture suite; `Q-7` `parse_attempt_count` ceiling;
@@ -1886,21 +1944,13 @@ unique; `Q-4` `snapshot_sha256`; `Q-5` worker HMAC + nonce; `Q-6` fixture suite;
 
 Add to §8.5: the IDOR matrix, the replay matrix, the fixture suite, and `check-invariants.sh` as named suites.
 
-Add to §11 decision log on acceptance: "Security POV adopted as Section 8.7; list residual risks and unresolved D-1…D-4 decisions with owners. Do not mark an open residual-risk choice as accepted by implication."
+Add to §11 decision log on acceptance: "Security POV adopted as Section 8.7; list residual risks and unresolved D-1…D-5 decisions with owners. Do not mark an open residual-risk choice as accepted by implication."
 
 ---
 
-#### 8.7.8 FORMA integration notes and open decisions
+#### 8.7.8 Open decisions
 
-The security review is adopted as a security-engineering POV, with these Medusa v2 integration rules controlling implementation:
-
-- Keep Stripe webhook ingress on Medusa native Stripe provider route /hooks/payment/stripe_stripe. The provider validates and processes Stripe events and emits Medusa payment events. Custom workflows/subscribers re-read authoritative Medusa Payment, Capture, Refund, Payment Collection, and Module Link state; do not add a second raw Stripe webhook processor or parallel payment ledger. Deduplicate the custom charge effect by charge plus Medusa payment/capture identity.
-- Implement compare-and-set and event append operations inside the owning Quotes or Commissions custom module service using Medusa DML/repositories and its transaction manager (InjectManager / InjectTransactionManager). Workflows coordinate modules; use Query and Module Link APIs for core entities. SQL in this section describes constraints/atomic conditions only: generate Medusa module migrations for DML changes and keep any custom SQL/indexes inside custom module migrations. Never write Commerce Module tables directly.
-- Preserve the security review's stale-action invariant in Medusa DML: aggregate_version is the compare-and-set row version; proof_revision binds commission proof uploads/approval; spec_revision binds quote model/options/pricing content. Every proof approval compares expected aggregate_version and the latest proof_revision; quote acceptance compares expected aggregate_version and spec_revision. Any concurrent state change or replaced content invalidates a stale action.
-- Cloudflare R2 supports signed Content-Type and atomic If-None-Match: * PUTs. Do not treat signed Content-Length as a maximum-size enforcement mechanism unless the chosen browser + SDK + R2 path proves it in staging. For a hard pre-storage cap use a streaming upload gateway; otherwise retain finalize-time size checks, quotas, alarms, and the residual-risk decision in Section 11. [R2 presigned URLs](https://developers.cloudflare.com/r2/api/s3/presigned-urls/), [conditional writes](https://developers.cloudflare.com/r2/api/s3/extensions/)
-- Keep Medusa-generated IDs as opaque strings. If UUIDv7 is required for public asset identifiers, store a separate UUID field; never validate a prefixed Medusa DML ID as a UUID.
-- Retention periods, cancellation/refund rules, upload gateway, asset proxy strategy, and staff-role granularity remain decisions until recorded in Section 11. The values in the security review are proposed defaults, not legal or commercial approval.
-- Header examples are policy templates: replace example domains with exact deployed origins, test the CSP with Next.js, Three.js, and Stripe in report-only mode, then enforce it. Do not ship preload HSTS or a COOP value until domain and Stripe authentication flows are verified.
+Section 11 is the sole source of truth for decision status, owner, and gate. Resolve D-3 before the first Commission DML migration; resolve D-1, D-2, D-4, and D-5 before the phase gates stated in their decision rows. Security controls are specified in Sections 8.7.1–8.7.7 and are not duplicated here.
 
 *End of section.*
 
@@ -1942,6 +1992,7 @@ AR, trade/wholesale, multi-currency, loyalty, and advanced personalization can f
 
 - [x] Review and correct the Medusa v2 / Next.js architecture in Sections 5–6.
 - [x] Expand Phases 1–4 with implementation paths, data contracts, workflow boundaries, library choices, and security acceptance criteria.
+- [x] Integrate the payment-hardening follow-up reviews into Section 8.7 and the Phase 1/3/4 contracts; keep unresolved role and infrastructure choices as explicit gates.
 - [ ] Review Section 3 with the user and record decisions.
 - [x] Initialize git; the repository has initial commit 4a658c6.
 - [ ] Add `.gitignore` and create a baseline tag for the current static site before restructuring; no tag exists yet.
@@ -1949,10 +2000,11 @@ AR, trade/wholesale, multi-currency, loyalty, and advanced personalization can f
 - [ ] Create a `migration/medusa` branch for the rebuild; merge in phase-sized increments.
 - [ ] Create pnpm workspace: `apps/storefront`, `apps/medusa`, `apps/private-media-worker`, `packages/contracts`, and `legacy/`.
 - [ ] Create `packages/contracts` as workspace package `@forma/contracts`; build strict TypeScript/Zod contracts to `dist/` and export `./product`, `./commission`, `./quote`, and `./mesh-analysis` for both apps.
+- [ ] Resolve the current mobile-menu Playwright timeout (`node scripts/functional-test.mjs`: 12/13 on two runs), rerun the 13-check baseline, and update these metrics before moving the Vite app to `legacy/`.
 - [ ] Move the current Vite app to `legacy/` (or preserve it in git history and keep a reference copy).
 - [ ] Scaffold Medusa v2 and Next.js apps; pin exact versions; document them.
 - [ ] Add `.env.example` for both apps and a root README.
-- [ ] Add CI: install, lint, typecheck, build, tests.
+- [ ] Add CI: install pnpm and ripgrep before running `scripts/security/check-invariants.sh`; run lint, typecheck, build, tests, security invariants, and migration checks.
 - [ ] Create accounts/projects (user-assisted): Neon, Upstash, R2, Stripe test, Resend, Meilisearch, Sanity, Vercel, Railway/Fly.
 - [ ] Document the visual baseline and screenshot references.
 - [ ] Update the current-focus block.
@@ -1961,12 +2013,12 @@ AR, trade/wholesale, multi-currency, loyalty, and advanced personalization can f
 
 ### 9.4 Phase 1 — Medusa foundation
 
-- [ ] **Pin runtime and dependencies.** Set the root Node version to one supported by the exact pinned Medusa CLI/framework release; the current CLI docs require Node 22.22.0 or later. Record Node, pnpm, Medusa, Next.js, and React versions in the root README and lockfile. Do not use floating latest versions. Use monorepo paths apps/medusa, apps/storefront, packages/contracts, and preserve the existing app in legacy/.
+- [ ] **Pin runtime and dependencies.** Set the root Node version to one supported by the exact pinned Medusa CLI/framework release; the current CLI docs require Node 22.22.0 or later. Record Node, pnpm, Medusa, Next.js, and React versions in the root README and lockfile. Pin all aligned Medusa packages to one exact release, never floating `latest`; require Medusa ≥2.11.1 if retaining Stripe custom-metadata assertions, and verify the selected release includes PR #13588's automatic-capture race fix. Payment resolution must work without provider metadata. Use monorepo paths apps/medusa, apps/storefront, packages/contracts, and preserve the existing app in legacy/.
 - [ ] **Install backend packages in apps/medusa/package.json.** Runtime: @medusajs/medusa, @medusajs/framework, @medusajs/cli, zod (or @medusajs/framework/zod inside Medusa code), @aws-sdk/client-s3, @aws-sdk/s3-request-presigner, and resend. Keep Medusa packages on one pinned release. Use @medusajs/medusa/core-flows for commerce workflows; do not write commerce tables or duplicate core services.
-- [ ] **Configure apps/medusa/medusa-config.ts.** Read database, Redis, JWT, cookie, CORS, Stripe, public R2, and Resend configuration only from process.env; validate required production variables at boot and fail startup when missing. Configure PostgreSQL with projectConfig.databaseUrl, STORE_CORS, ADMIN_CORS, AUTH_CORS, JWT_SECRET, and COOKIE_SECRET. Register Redis Workflow Engine from @medusajs/medusa/workflow-engine-redis with redis.redisUrl from REDIS_URL; do not use deprecated url configuration.
-- [ ] **Create apps/medusa/.env.example and apps/medusa/README.md.** Document DATABASE_URL, REDIS_URL, JWT_SECRET, COOKIE_SECRET, STORE_CORS, ADMIN_CORS, AUTH_CORS, STRIPE_API_KEY, STRIPE_WEBHOOK_SECRET, R2_PUBLIC_ENDPOINT, R2_PUBLIC_BUCKET, R2_PUBLIC_ACCESS_KEY_ID, R2_PUBLIC_SECRET_ACCESS_KEY, R2_PUBLIC_URL, R2_PRIVATE_ENDPOINT, R2_PRIVATE_REGION, R2_UPLOAD_STAGING_BUCKET, R2_UPLOAD_STAGING_ACCESS_KEY_ID, R2_UPLOAD_STAGING_SECRET_ACCESS_KEY, R2_UPLOAD_QUARANTINE_BUCKET, R2_UPLOAD_QUARANTINE_ACCESS_KEY_ID, R2_UPLOAD_QUARANTINE_SECRET_ACCESS_KEY, R2_WORKER_ACCESS_KEY_ID, R2_WORKER_SECRET_ACCESS_KEY, UPLOAD_INTENT_SECRET, RESEND_API_KEY, and RESEND_FROM. Use dummy values only. Scope each R2 key to its assigned bucket/role; never share public-asset credentials with private upload or worker services. Never commit populated environment files.
+- [ ] **Configure apps/medusa/medusa-config.ts.** Read database, Redis, JWT, cookie, CORS, Stripe, public R2, and Resend configuration only from process.env; validate required production variables at boot and fail startup when missing. Configure PostgreSQL with projectConfig.databaseUrl, JWT_SECRET, and COOKIE_SECRET. Set `STORE_CORS` to the storefront HTTPS origin only, `ADMIN_CORS` to the standalone Admin HTTPS origin only, and `AUTH_CORS` to the exact allowed auth client origins; no wildcard or `null` origins. `.env.example` may use obvious placeholders, but deployment validation must reject placeholders and require exact origins. Register Redis Workflow Engine from @medusajs/medusa/workflow-engine-redis with redis.redisUrl from REDIS_URL; do not use deprecated url configuration.
+- [ ] **Create apps/medusa/.env.example and apps/medusa/README.md.** Document DATABASE_URL, REDIS_URL, JWT_SECRET, COOKIE_SECRET, STORE_CORS, ADMIN_CORS, AUTH_CORS, STRIPE_API_KEY, STRIPE_WEBHOOK_SECRET, R2_PUBLIC_ENDPOINT, R2_PUBLIC_BUCKET, R2_PUBLIC_ACCESS_KEY_ID, R2_PUBLIC_SECRET_ACCESS_KEY, R2_PUBLIC_URL, R2_PRIVATE_ENDPOINT, R2_PRIVATE_REGION, R2_UPLOAD_STAGING_BUCKET, R2_UPLOAD_STAGING_ACCESS_KEY_ID, R2_UPLOAD_STAGING_SECRET_ACCESS_KEY, R2_UPLOAD_QUARANTINE_BUCKET, R2_UPLOAD_QUARANTINE_ACCESS_KEY_ID, R2_UPLOAD_QUARANTINE_SECRET_ACCESS_KEY, R2_WORKER_ACCESS_KEY_ID, R2_WORKER_SECRET_ACCESS_KEY, R2_DOWNLOAD_SIGNER_ACCESS_KEY_ID, R2_DOWNLOAD_SIGNER_SECRET_ACCESS_KEY, UPLOAD_INTENT_SECRET, RESEND_API_KEY, and RESEND_FROM. Use dummy values only. Scope each R2 key to its assigned bucket/role; the private-download signer is Medusa-only and separate from the worker read key; never share public-asset credentials with private upload or worker services. Never commit populated environment files.
 - [ ] **Configure the public file provider.** Register @medusajs/medusa/file and @medusajs/medusa/file-s3 in apps/medusa/medusa-config.ts. Map file_url, access_key_id, secret_access_key, bucket, region: "auto", and R2 endpoint from environment variables. This provider serves public catalogue images and GLBs only. Customer uploads use a separate private R2 bucket and never receive a public URL.
-- [ ] **Configure Stripe in Medusa.** Register @medusajs/medusa/payment-stripe under @medusajs/medusa/payment with apiKey and webhook secret from environment. Preserve Medusa's native /hooks/payment/stripe_stripe route; do not add a second Stripe webhook endpoint or persist card data. Enable Stripe only for the configured USD region.
+- [ ] **Configure Stripe in Medusa.** Register @medusajs/medusa/payment-stripe under @medusajs/medusa/payment with apiKey, webhook secret, and explicit `capture: true` from validated server configuration; the launch flow captures the approved amount at checkout, while deposit percentage remains a Section 3 business decision. Preserve Medusa's native `/hooks/payment/stripe_stripe` route; do not add a second Stripe webhook endpoint or persist card data. Enable Stripe only for the configured USD region. Provider metadata is not a resolver; if the optional metadata assertion is retained, obey the v2.11.1 version floor above.
 - [ ] **Seed the initial commerce configuration in apps/medusa/src/scripts/seed.ts.** Idempotently create/retrieve one launch region with currency usd, English defaults, and the storefront sales channel. Add only tax and shipping providers/options approved in Section 3. Do not silently enable US/UK/EU markets, tax collection, DDP, return promises, or shipping rates while decisions remain open.
 - [ ] **Provision the first Admin user.** Run pnpm --dir apps/medusa exec medusa user --email <operator-email> --invite, or use --password only through a secure terminal that does not record the secret. Verify login at the configured Admin URL. Use least privilege supported by the pinned release and document provisioning/offboarding in apps/medusa/README.md.
 - [ ] **Build the Medusa Admin as FORMA's standalone Vite SPA.** Put custom routes/widgets in apps/medusa/src/admin/ and use @medusajs/admin-sdk (defineRouteConfig) and @medusajs/ui. Add an `admin:build` script in apps/medusa/package.json that runs the pinned `medusa build --admin-only`; deploy its `.medusa/admin` output to the dedicated Admin static host with SPA fallback. Set `admin.path` and `admin.backendUrl` in apps/medusa/medusa-config.ts, configure exact-origin backend CORS and static-host security headers, and keep Admin API routes in the Medusa server. Add `scripts/security/check-deployed-headers.mjs` to verify the staging storefront, Admin, and private-asset response headers. The normal combined build's `/app` path is a supported Medusa v2 mode but is not the FORMA deployment target. Do not implement Admin as a Next.js route. ([Admin](https://docs.medusajs.com/learn/fundamentals/admin), [build](https://docs.medusajs.com/resources/medusa-cli/commands/build))
@@ -2012,8 +2064,8 @@ export type ProductMetaV1 = z.infer<typeof ProductMetaV1Schema>
 - [ ] **Create products and variants with native fields.** Seed title, handle, status, description, category/collection IDs, options, variants, SKU, Medusa Pricing amounts in integer minor currency units, inventory policy/stock where applicable, weight/dimensions, images/alt text, and validated metadata.forma. Keep made-to-order lead time distinct from stock quantity. Public images/GLBs must use the public asset origin, never private uploads.
 - [ ] **Create a publishable key.** Use Medusa Admin or the native publishable-key workflow and associate the key only with the storefront sales channel. Store it server-side as MEDUSA_PUBLISHABLE_KEY; expose only the publishable value as NEXT_PUBLIC_MEDUSA_PUBLISHABLE_KEY. Keep secret API keys and Admin tokens server-only.
 - [ ] **Implement the transactional email adapter.** Dispatch through Medusa Notification Module. Use npm package resend only inside apps/medusa/src/modules/resend-notification/ and register the provider in medusa-config.ts. Templates live in src/modules/resend-notification/templates/. Use a local provider in development. Log delivery state/provider message IDs, never API keys.
-- [ ] **Add verification scripts.** Put apps/medusa/src/scripts/verify-catalog.ts and verify-payment-provider.ts in place. Use Medusa Query/SDK APIs, not direct SQL. Verify region currency, publishable-key sales-channel association, seeded counts, prices, inventory policy, image URLs, and Stripe provider availability.
-- [ ] **Exercise normal Stripe test checkout.** Create a cart, add a seeded variant, set address and an approved shipping option, create a payment collection/session through Store API or native workflow, complete through Medusa, and verify Order/Payment Module records. Verify the signed Stripe webhook updates payment state. Never mark an order paid from browser state.
+- [ ] **Add verification scripts.** Put apps/medusa/src/scripts/verify-catalog.ts and verify-payment-provider.ts in place, plus server-only `src/lib/payments/read-payment-truth.ts` for re-reading current Medusa Payment/Capture/Refund/Payment Collection state. Use Medusa Query/SDK APIs, not direct SQL. Verify region currency, publishable-key sales-channel association, seeded counts, prices, inventory policy, image URLs, Stripe provider availability, `capture: true`, and that capture truth can be reconstructed by Payment Collection ID without provider metadata.
+- [ ] **Exercise normal Stripe test checkout.** Create a cart, add a seeded variant, set address and an approved shipping option, create a payment collection/session through Store API or native workflow, complete through Medusa, and verify Order/Payment Module records. With `capture: true`, assert one captured Medusa Payment with exact amount/currency and no duplicate capture/refund. The Phase 1 capture gate passes when exactly one `payment.captured` event arrives or the same re-read path records exactly one reconciliation hit; test both event-present and event-absent outcomes. Never mark an order paid from browser state.
 - [ ] **Run migration commands from apps/medusa.** Generate module migrations after DML changes with pnpm exec medusa db:generate <module-name>, then apply pnpm exec medusa db:migrate. After link changes run pnpm exec medusa db:migrate or pnpm exec medusa db:sync-links. Record commands in apps/medusa/README.md. ([DML](https://docs.medusajs.com/learn/fundamentals/data-models), [S3 provider](https://docs.medusajs.com/resources/infrastructure-modules/file/s3), [Stripe provider](https://docs.medusajs.com/resources/commerce-modules/payment/payment-provider/stripe))
 
 **Done when:** Medusa Admin can manage the catalogue; the storefront can fetch products/categories/collections; images are served from R2; a test order completes in Stripe test mode.
@@ -2083,9 +2135,37 @@ export const RequestProofChangesSchema = z.object({
   proof_revision: z.number().int().positive(),
   message: z.string().trim().min(1).max(1000),
 }).strict()
+export const CommissionPriceSnapshotSchema = z.object({
+  schema_version: z.literal(1),
+  pricing_version: z.string().min(1).max(64),
+  currency_code: z.string().regex(/^[a-z]{3}$/),
+  total_minor: z.number().int().positive(),
+  deposit_minor: z.number().int().nonnegative(),
+  balance_minor: z.number().int().nonnegative(),
+}).strict().superRefine((v, ctx) => {
+  if (v.deposit_minor + v.balance_minor !== v.total_minor) {
+    ctx.addIssue({ code: "custom", path: ["balance_minor"], message: "deposit plus balance must equal total" })
+  }
+})
+export const CommissionChargeSnapshotSchema = z.object({
+  schema_version: z.literal(1),
+  commission_id: z.string().min(1).max(128),
+  purpose: z.enum(["deposit", "balance"]),
+  amount_minor: z.number().int().positive(),
+  currency_code: z.string().regex(/^[a-z]{3}$/),
+  pricing_version: z.string().min(1).max(64),
+  commission_snapshot_sha256: z.string().regex(/^[a-f0-9]{64}$/),
+  commission_aggregate_version_at_creation: z.number().int().positive(),
+}).strict()
+export const SetCommissionPriceSchema = z.object({
+  expected_aggregate_version: z.number().int().positive(),
+  snapshot: CommissionPriceSnapshotSchema,
+}).strict()
 export type CreateCommissionInput = z.infer<typeof CreateCommissionInputSchema>
 export type ApproveProofInput = z.infer<typeof ApproveProofSchema>
 export type RequestProofChangesInput = z.infer<typeof RequestProofChangesSchema>
+export type CommissionPriceSnapshot = z.infer<typeof CommissionPriceSnapshotSchema>
+export type CommissionChargeSnapshot = z.infer<typeof CommissionChargeSnapshotSchema>
 ~~~
 
 **DML field and relationship contract for apps/medusa/src/modules/commissions/models/:**
@@ -2106,15 +2186,16 @@ export const Commission = model.define("commission", {
   gift_note: model.text().nullable(),
   requested_deadline: model.dateTime().nullable(),
   assigned_user_id: model.text().nullable(),
-  aggregate_version: model.number(),
-  proof_revision: model.number(),
+  aggregate_version: model.number().default(1),
+  proof_revision: model.number().default(0),
   pricing_version: model.text().nullable(),
   currency_code: model.text().nullable(),
   total_minor: model.number().nullable(),
   deposit_minor: model.number().nullable(),
   balance_minor: model.number().nullable(),
+  pricing_snapshot: model.json().nullable(),
+  snapshot_sha256: model.text().nullable(),
   retention_deadline: model.dateTime().nullable(),
-  metadata: model.json().nullable(),
   assets: model.hasMany(() => CommissionAsset, { mappedBy: "commission" }),
   events: model.hasMany(() => CommissionEvent, { mappedBy: "commission" }),
   charges: model.hasMany(() => CommissionCharge, { mappedBy: "commission" }),
@@ -2133,11 +2214,11 @@ export const CommissionAsset = model.define("commission_asset", {
   byte_size: model.number().nullable(),
   client_sha256_claim: model.text().nullable(),
   sha256: model.text().nullable(),
-  state: model.enum(["intent", "uploaded", "quarantined", "available", "rejected", "deleted", "expired"]),
+  state: model.enum(["intent", "uploaded", "quarantined", "processing", "available", "rejected", "deleted", "expired"]),
   intent_expires_at: model.dateTime().nullable(),
   finalized_at: model.dateTime().nullable(),
-  finalize_attempt_count: model.number(),
-  sign_count: model.number(),
+  finalize_attempt_count: model.number().default(0),
+  sign_count: model.number().default(0),
   virus_scan_state: model.enum(["pending", "clean", "infected", "error"]),
   virus_scanner_version: model.text().nullable(),
   virus_scan_completed_at: model.dateTime().nullable(),
@@ -2156,7 +2237,7 @@ export const CommissionEvent = model.define("commission_event", {
   event_type: model.text(),
   from_status: model.text().nullable(),
   to_status: model.text().nullable(),
-  actor_type: model.enum(["customer", "user", "system"]),
+  actor_type: model.enum(["customer", "user", "system", "worker"]),
   actor_id: model.text().nullable(),
   payment_event_key: model.text().nullable().unique(),
   public_message: model.text().nullable(),
@@ -2169,12 +2250,13 @@ export const CommissionEvent = model.define("commission_event", {
 export const CommissionCharge = model.define("commission_charge", {
   id: model.id().primaryKey(),
   purpose: model.enum(["deposit", "balance"]),
-  status: model.enum(["requires_payment", "processing", "authorized", "captured", "partially_refunded", "refunded", "canceled", "expired", "mismatch"]),
+  status: model.enum(["requires_payment", "processing", "authorized", "captured", "partially_refunded", "refunded", "canceled", "expired", "mismatch", "mismatch_resolved"]),
   amount_minor: model.number(),
   amount_captured_minor: model.number().nullable(),
   currency_code: model.text(),
   pricing_version: model.text(),
   pricing_snapshot: model.json(),
+  snapshot_sha256: model.text(),
   payment_collection_id: model.text().nullable(),
   payment_session_id: model.text().nullable(),
   payment_id: model.text().nullable(),
@@ -2182,22 +2264,24 @@ export const CommissionCharge = model.define("commission_charge", {
   commission_aggregate_version_at_creation: model.number(),
   paid_at: model.dateTime().nullable(),
   disputed_at: model.dateTime().nullable(),
-  payment_hold: model.boolean(),
+  payment_hold: model.boolean().default(false),
+  mismatch_resolved_at: model.dateTime().nullable(),
   commission: model.belongsTo(() => Commission, { mappedBy: "charges" }),
 })
 ~~~
 
-- [ ] **Create contracts in packages/contracts/src/commission.ts.** Export COMMISSION_STATUSES as the exact tuple ["brief_received","review","quote_sent","deposit_pending","sculpting","proof_sent","changes_requested","approved","printing","finishing","balance_pending","shipped","cancelled"] as const, CommissionStatus, CreateCommissionInputSchema, ApproveProofSchema, RequestProofChangesSchema, CommissionAssetRoleSchema, CommissionStatusTransitionSchema, and response DTO schemas. Public create input contains subject_type, controlled style_key, size_key, finish_key, optional plinth_key, gift_note (max 500 chars), optional ISO requested_deadline, and source_photo_consent with accepted: true and current consent_version. Proof actions require expected_aggregate_version and the exact proof_revision being approved/requested for changes. Derive customer ID from authenticated Medusa request context; reject customer_id, status, price, deposit, balance, object key, and payment state from the browser. MVP requires a signed-in customer before brief creation/upload. Guest access requires a separately designed expiring high-entropy capability-token contract and security review.
+- [ ] **Create contracts in packages/contracts/src/commission.ts.** Export COMMISSION_STATUSES as the exact tuple ["brief_received","review","quote_sent","deposit_pending","sculpting","proof_sent","changes_requested","approved","printing","finishing","balance_pending","shipped","cancelled"] as const, CommissionStatus, CreateCommissionInputSchema, ApproveProofSchema, RequestProofChangesSchema, CommissionPriceSnapshotSchema, CommissionChargeSnapshotSchema, SetCommissionPriceSchema, CommissionAssetRoleSchema, CommissionStatusTransitionSchema, and response DTO schemas. Commission price snapshots are strict/versioned, and the schema rejects unless `deposit_minor + balance_minor === total_minor`. Charge snapshots include purpose, exact amount/currency/pricing version, source Commission snapshot hash, and aggregate version; hash canonical JSON and persist `snapshot_sha256`. Public create input contains subject_type, controlled style_key, size_key, finish_key, optional plinth_key, gift_note (max 500 chars), optional ISO requested_deadline, and source_photo_consent with accepted: true and current consent_version. Proof actions require expected_aggregate_version and the exact proof_revision being approved/requested for changes. Derive customer ID from authenticated Medusa request context; reject customer_id, status, price, deposit, balance, object key, and payment state from the browser. MVP requires a signed-in customer before brief creation/upload. Guest access requires a separately designed expiring high-entropy capability-token contract and security review.
 - [ ] **Create module files.** Use apps/medusa/src/modules/commissions/index.ts, service.ts, models/commission.ts, models/commission-asset.ts, models/commission-event.ts, and models/commission-charge.ts. Export COMMISSIONS_MODULE = "commissions" and register Module(COMMISSIONS_MODULE, { service: CommissionsModuleService }). Extend MedusaService({ Commission, CommissionAsset, CommissionEvent, CommissionCharge }). This service persists only these custom models; it never accesses Customer, Cart, Order, Payment, or File tables directly. ([Medusa modules](https://docs.medusajs.com/learn/fundamentals/modules))
-- [ ] **Define the Medusa v2 DML models.** Implement the exact model files above with DML fields and same-module relations; apply supplemental partial unique indexes only through the Commissions custom-module migration. Commission persists server-derived `owner_customer_id`, `aggregate_version`, and `proof_revision`; CommissionAsset persists opaque `public_asset_id`, private object key, separate processing/marketing consent, scan state, retention, and deletion tombstone; CommissionEvent is append-only and stores aggregate/proof revisions; CommissionCharge stores payment mapping, charge state, captured amount, currency, pricing snapshot, dispute/hold state, and aggregate version at creation. Never store payment credentials or treat custom charge state as payment truth. Define strict Zod contracts for persisted JSON snapshots.
-- [ ] **Use same-module relationships and cross-module Module Links.** Commission↔asset/event/charge uses DML hasMany/belongsTo, never Module Links. Add apps/medusa/src/links/commission-customer.ts, commission-cart.ts, commission-order.ts, commission-charge-cart.ts, commission-charge-order.ts, and commission-charge-payment-collection.ts using defineLink and each module's linkable export. Define Customer→Commission with `isList: true` on the Commission linkable (one customer, many commissions); define Commission→Cart with `isList: true` on Cart (one commission, multiple charge carts); define Commission→Order with `isList: true` on Order (one commission, multiple charge orders); keep Charge→Cart, Charge→Order, and Charge→Payment Collection one-to-one where supported by the pinned modules. Enforce one active Cart per Charge through its unique link/checkout idempotency key. Links store cross-module IDs, not foreign keys. Validate owner/link on every workflow. Use current Module Link/Link APIs; do not hand-write link rows. Run `pnpm --dir apps/medusa exec medusa db:migrate` after link definitions. ([Module Links](https://docs.medusajs.com/learn/fundamentals/module-links))
-- [ ] **Implement workflows in apps/medusa/src/workflows/commissions/.** Files: create-commission.ts, create-upload-intent.ts, finalize-upload.ts, transition-commission.ts, send-deposit-checkout.ts, record-payment-captured.ts, create-proof-revision.ts, approve-proof.ts, request-proof-changes.ts, create-balance-checkout.ts, cancel-commission.ts, delete-expired-assets.ts. Use createWorkflow/createStep/StepResponse/WorkflowResponse and compensation handlers from @medusajs/framework/workflows-sdk. create-commission.ts sets status=brief_received, aggregate_version=1, and proof_revision=0 server-side. Workflow inputs are strict schemas. API routes never orchestrate multiple modules by directly calling service methods.
-- [ ] **Enforce the production state machine.** Allowed transitions: brief_received → review|cancelled; review → quote_sent|cancelled; quote_sent → deposit_pending|review|cancelled; deposit_pending → sculpting|cancelled; sculpting → proof_sent|cancelled; proof_sent → changes_requested|approved|cancelled; changes_requested → sculpting|cancelled; approved → printing|cancelled; printing → finishing|cancelled; finishing → balance_pending|shipped|cancelled; balance_pending → shipped|cancelled. shipped/cancelled are terminal. Implement cancellation edges as staff-only finance/admin actions gated by the approved cancellation/refund policy; until that policy is recorded in Section 11, keep the cancellation command disabled. Cancellation never implies an automatic refund. Re-read current state, require actor/role, compare-and-set status + aggregate_version, append CommissionEvent in the same custom-module transaction, and reject browser status changes. Proof actions compare expected_aggregate_version and proof_revision. Customer can approve/request changes only on the latest proof revision; staff-only stages require Admin authentication.
-- [ ] **Use the private image pipeline from Section 6.4.** Create separate private R2 staging and quarantine buckets using R2_PRIVATE_ENDPOINT, R2_PRIVATE_REGION, R2_UPLOAD_STAGING_BUCKET, R2_UPLOAD_STAGING_ACCESS_KEY_ID, R2_UPLOAD_STAGING_SECRET_ACCESS_KEY, R2_UPLOAD_QUARANTINE_BUCKET, R2_UPLOAD_QUARANTINE_ACCESS_KEY_ID, R2_UPLOAD_QUARANTINE_SECRET_ACCESS_KEY, R2_WORKER_ACCESS_KEY_ID, R2_WORKER_SECRET_ACCESS_KEY, and UPLOAD_INTENT_SECRET in backend/worker secret stores only. Medusa signs a single short-lived PUT to staging; the finalize service has the quarantine-writer key; the worker supervisor receives a distinct read-only quarantine key; the sandbox receives no credentials. Commission upload-intent workflows accept JPEG/PNG/WebP source photos/proofs, enforce Phase 3 byte/pixel caps, run ClamAV scan, decode/re-encode previews with sharp in the isolated image process, strip EXIF/GPS, and store source/preview under different private opaque R2 keys. Never place photos in the public product bucket, Next public directory, CMS, email, or analytics. Store only key/hash/byte count/consent/lifecycle fields in CommissionAsset.
+- [ ] **Define the Medusa v2 DML models.** Implement the exact model files above with DML fields and same-module relations; apply supplemental partial unique indexes only through the Commissions custom-module migration. Commission persists server-derived `owner_customer_id`, `aggregate_version`, and `proof_revision`; CommissionAsset persists opaque `public_asset_id`, private object key, separate processing/marketing consent, scan state, retention, and deletion tombstone; CommissionEvent is append-only and stores aggregate/proof revisions; CommissionCharge stores payment mapping, charge state, captured amount, currency, strict pricing snapshot/hash, dispute/hold state, and aggregate version at creation. Never store payment credentials or treat custom charge state as payment truth. Define strict Zod contracts for persisted JSON snapshots. Resolve Section 11 D-3 before generating/applying the first Commission migration.
+- [ ] **Use same-module relationships and cross-module Module Links.** Commission↔asset/event/charge uses DML hasMany/belongsTo, never Module Links. Add apps/medusa/src/links/commission-customer.ts, commission-cart.ts, commission-order.ts, and commission-charge-payment-collection.ts using defineLink and each module's linkable export. Do not create commission-charge-cart.ts or commission-charge-order.ts. Define Customer→Commission with `isList: true` on the Commission linkable (one customer, many commissions); define Commission→Cart and Commission→Order as one commission to many carts/orders. The one-to-one Charge→Payment Collection Module Link is the charge's only payment-side anchor; use Medusa's native PaymentCollection→Cart (1:1) and PaymentCollection→Order (1:N) links to traverse to commerce records. Commission↔Cart/Order links may represent the aggregate but cannot resolve payment ownership. Links store cross-module IDs, not foreign keys. Validate owner/link on every workflow. Use current Module Link/Link APIs; do not hand-write link rows. Run `pnpm --dir apps/medusa exec medusa db:migrate` after link definitions. ([Module Links](https://docs.medusajs.com/learn/fundamentals/module-links), [Payment Module links](https://docs.medusajs.com/resources/commerce-modules/payment/relations-to-other-modules))
+- [ ] **Implement workflows in apps/medusa/src/workflows/commissions/.** Files: create-commission.ts, create-upload-intent.ts, finalize-upload.ts, transition-commission.ts, set-commission-price.ts, send-deposit-checkout.ts, record-payment-captured.ts, reconcile-commission-payment.ts, resolve-charge-mismatch.ts, create-proof-revision.ts, approve-proof.ts, request-proof-changes.ts, create-balance-checkout.ts, cancel-commission.ts, delete-expired-assets.ts. Use createWorkflow/createStep/StepResponse/WorkflowResponse and compensation handlers from @medusajs/framework/workflows-sdk. create-commission.ts sets status=brief_received, aggregate_version=1, and proof_revision=0 server-side. DML counter defaults are safety backstops; create-intent always explicitly sets `claimed_byte_size` from the validated request, and event workflows explicitly set captured revisions. Workflow inputs are strict schemas. API routes never orchestrate multiple modules by directly calling service methods.
+- [ ] **Enforce the production state machine.** Allowed transitions: brief_received → review|cancelled; review → quote_sent|cancelled; quote_sent → deposit_pending|review|cancelled; deposit_pending → sculpting|cancelled; sculpting → proof_sent|cancelled; proof_sent → changes_requested|approved|cancelled; changes_requested → sculpting|cancelled; approved → printing|cancelled; printing → finishing|cancelled; finishing → balance_pending|shipped|cancelled; balance_pending → shipped|cancelled. shipped/cancelled are terminal. GUARDS in Section 8.7.3 G3 must contain an entry for every listed edge, including `finishing>shipped` guarded by all charges settled and the four late cancellation edges. Cancellation edges are staff-only finance/admin actions gated by the approved cancellation/refund policy; until that policy is recorded in Section 11, keep the cancellation command disabled. Cancellation never implies an automatic refund. Re-read current state, require actor/role, compare-and-set status + aggregate_version, append CommissionEvent in the same custom-module transaction, and reject browser status changes. `deposit_pending>sculpting` permits the system reconciler or finance/admin confirmation only after the same authoritative captured-payment guard passes; bank transfer, if enabled, must first be recorded as a captured Medusa Payment through its native/manual provider. Proof actions compare expected_aggregate_version and proof_revision. Customer can approve/request changes only on the latest proof revision; staff-only stages require Admin authentication.
+- [ ] **Use the private image pipeline from Section 6.4.** Create separate private R2 staging and quarantine buckets using R2_PRIVATE_ENDPOINT, R2_PRIVATE_REGION, R2_UPLOAD_STAGING_BUCKET, R2_UPLOAD_STAGING_ACCESS_KEY_ID, R2_UPLOAD_STAGING_SECRET_ACCESS_KEY, R2_UPLOAD_QUARANTINE_BUCKET, R2_UPLOAD_QUARANTINE_ACCESS_KEY_ID, R2_UPLOAD_QUARANTINE_SECRET_ACCESS_KEY, R2_WORKER_ACCESS_KEY_ID, R2_WORKER_SECRET_ACCESS_KEY, R2_DOWNLOAD_SIGNER_ACCESS_KEY_ID, R2_DOWNLOAD_SIGNER_SECRET_ACCESS_KEY, and UPLOAD_INTENT_SECRET in the assigned Medusa/worker secret stores. Medusa signs a single short-lived PUT to staging and uses the separate private-download signer only after ownership/staff authorization; the finalize service has the quarantine-writer key; the worker supervisor receives a distinct read-only quarantine key; the sandbox receives no credentials. Commission upload-intent workflows accept JPEG/PNG/WebP source photos/proofs, enforce Phase 3 byte/pixel caps, run ClamAV scan, decode/re-encode previews with sharp in the isolated image process, strip EXIF/GPS, and store source/preview under different private opaque R2 keys. Never place photos in the public product bucket, Next public directory, CMS, email, or analytics. Store only key/hash/byte count/consent/lifecycle fields in CommissionAsset.
 - [ ] **Create Store API routes in apps/medusa/src/api/store/custom/commissions/.** route.ts POST creates brief; [id]/route.ts GET returns only owner's safe DTO; [id]/assets/upload-intents/route.ts POST creates intent; [id]/assets/[asset_id]/finalize/route.ts POST finalizes upload; [id]/proof/approval/route.ts POST approves a specified revision; [id]/proof/changes/route.ts POST requests changes with bounded text; [id]/checkout/deposit/route.ts POST creates deposit checkout; [id]/checkout/balance/route.ts POST creates balance checkout. Put request/response Zod schemas in validators.ts.
 - [ ] **Protect routes in apps/medusa/src/api/middlewares.ts.** Use authenticate("customer", ["session","bearer"]) for customer routes and authenticate("user", ["session","bearer","api-key"]) for Admin routes, matching the pinned Medusa version. Explicitly protect every /store/custom/commissions/** route, then compare req.auth_context.actor_id with the Customer Module Link in the workflow. Require publishable-key scoping, origin/CSRF checks, request-size limits, per-customer/IP rate limits, and idempotency keys for create/upload/checkout. Never authorize by email alone. ([Protected routes](https://docs.medusajs.com/learn/fundamentals/api-routes/protected-routes))
 - [ ] **Build customer pages and components.** Add apps/storefront/src/app/(store)/portrait-studio/page.tsx, apps/storefront/src/app/(store)/portrait-studio/gallery/page.tsx, apps/storefront/src/app/(store)/portrait-studio/start/page.tsx, apps/storefront/src/app/(store)/account/commissions/page.tsx, and apps/storefront/src/app/(store)/account/commissions/[id]/page.tsx. Add apps/storefront/src/components/portrait/commission-form.tsx, photo-uploader.tsx, commission-timeline.tsx, proof-viewer.tsx, proof-actions.tsx, and commission-summary.tsx. Use Server Components for landing/gallery/account reads and narrow Client Components for upload/progress/proof actions. Explain that an artist sculpts the likeness from reference photos; do not imply AI generation.
-- [ ] **Implement deposit and balance using normal Medusa commerce.** Store approved total/deposit/balance as integer minor units and immutable versioned pricing snapshot on Commission. A server workflow calculates each charge, creates a cart, adds a dedicated non-merchandised commission-charge variant at the server-computed amount using Medusa's custom line-item pricing workflow, links CommissionCharge to Cart, and uses normal Payment Collection, Stripe Payment Session, and cart completion. Create a separate balance charge/cart/order after finishing. Do not reuse a months-old Stripe authorization, call Stripe Payment Intents directly, or mark Commission paid from a browser redirect. Configure capture behavior according to approved payment policy. A payment.captured subscriber re-reads Payment/Order via Query, matches CommissionCharge link, and idempotently appends the event/advances production state. ([Custom item pricing](https://docs.medusajs.com/resources/examples/guides/custom-item-price), [payment events](https://docs.medusajs.com/resources/references/payment/events), [payment flow](https://docs.medusajs.com/resources/commerce-modules/payment/payment-flow))
+- [ ] **Set and preserve the Commission price snapshot.** `set-commission-price.ts` accepts only finance/admin-authenticated integer minor-unit fields and `expected_aggregate_version`; parse `SetCommissionPriceSchema` with a nested strict `CommissionPriceSnapshotSchema`, reject stale CAS, and require deposit + balance = total. Canonicalize and hash the snapshot, save immutable `pricing_snapshot` + `snapshot_sha256`, and append a versioned event in the same transaction. Before charge creation, build/validate `CommissionChargeSnapshotSchema`; each charge stores its strict JSON snapshot and own `snapshot_sha256`. Commission and charge rows have no unrestricted metadata field; use declared columns and typed snapshots only.
+- [ ] **Implement deposit and balance using normal Medusa commerce.** A server workflow calculates each charge, creates a cart, adds a dedicated non-merchandised commission-charge variant at the server-computed amount using Medusa's custom line-item pricing workflow, creates the normal Payment Collection/Stripe Payment Session, and links CommissionCharge to that Payment Collection. The Payment Collection's native Cart/Order relations are authoritative; do not add Charge↔Cart/Order links. Create a separate balance charge/cart/order after finishing only when `balance_minor > 0`; when it is zero, skip balance checkout and require the captured deposit to equal total. Use Stripe `capture: true`; do not reuse an old authorization, call Stripe Payment Intents directly, capture again when Medusa already reports captured, or mark Commission paid from a browser redirect. `payment.captured` and `payment.refunded` only wake reconciliation. ([Custom item pricing](https://docs.medusajs.com/resources/examples/guides/custom-item-price), [payment events](https://docs.medusajs.com/resources/references/payment/events), [payment flow](https://docs.medusajs.com/resources/commerce-modules/payment/payment-flow))
 - [ ] **Build the Admin commission board as an Admin extension.** Add apps/medusa/src/admin/routes/commissions/page.tsx and routes/commissions/[id]/page.tsx; optional widgets go in apps/medusa/src/admin/widgets/. Use @medusajs/admin-sdk and @medusajs/ui. Call protected /admin/custom/commissions APIs with Admin SDK. Provide filters by status/artist/due date; show safe photo/proof previews, revision history, assignment, due date, transition controls, price snapshot, and charge-order links. Create short-lived private GET URLs only after staff authorization; never log them.
 - [ ] **Add Admin APIs under apps/medusa/src/api/admin/custom/commissions/.** Implement list/detail, assign, staff transition, send proof, set price, and create balance checkout. Require Admin auth/role, validate transition/reason, record actor ID, and execute workflows. Admin is the separately hosted Vite SPA built with `medusa build --admin-only`; APIs remain on Medusa.
 - [ ] **Send idempotent emails.** Add apps/medusa/src/subscribers/commission-notification.ts and templates under src/modules/resend-notification/templates/. Send only after successful workflow/event: brief received, quote ready, deposit captured, proof ready, changes requested, approval recorded, printing, shipped, balance checkout. Deduplicate by (commission_id,event_type,revision). Do not attach photos or long-lived signed URLs; link to the authenticated account.
@@ -2212,8 +2296,9 @@ export const CommissionCharge = model.define("commission_charge", {
 - [ ] **Harden owner and asset records.** Add server-derived owner_customer_id to Commission and compare it with the Commission↔Customer Module Link on every customer read/mutation. Extend CommissionAsset with separate opaque public_asset_id; staging_key, quarantine_key, and accepted private object_key; claimed_byte_size/client_sha256_claim separate from actual byte_size/trusted sha256; sign_count/finalize_attempt_count; intent_expires_at/finalized_at; source_photo consent_version/consent_at; marketing_consent_version/marketing_consent_at; optional public_derivative_key; deleted_at/tombstone state; and explicit source/proof/final lifecycle. Never derive object keys from filenames.
 - [ ] **Apply the shared upload-intent controls to photos and proofs.** Use the central R2 presigner from Section 8.7.3 with one-time intent signing, server-generated keys, exact server-owned JPEG/PNG/WebP Content-Type, 15-minute expiry, HMAC token bound to intent/key/expiry, and `If-None-Match: *`. Keep claimed byte size/hash separate from server-verified values. Never use signed Content-Length as the size cap; enforce byte/pixel limits while streaming/decoding and keep originals quarantined until scan and re-encode succeed. No raw token, URL, or key in logs.
 - [ ] **Make state transitions atomic.** Implement one transition method inside apps/medusa/src/modules/commissions/service.ts using Medusa DML repositories and InjectManager/InjectTransactionManager. Its transaction compares status + aggregate_version, applies actor/role/precondition guards, updates aggregate_version, and appends CommissionEvent. Zero-row CAS returns a typed 409 STALE_STATE. No route, subscriber, or job writes status directly.
-- [ ] **Add charge-payment mapping and uniqueness.** Extend CommissionCharge with status enum requires_payment|processing|authorized|captured|partially_refunded|refunded|canceled|expired|mismatch; payment_collection_id, payment_session_id, payment_id, provider_payment_id (nullable), amount_captured_minor, paid_at, commission_aggregate_version_at_creation, disputed_at, and payment_hold. Link charge to its Medusa Payment Collection where supported. Add a custom-module partial unique index for one active charge per (commission, purpose), excluding canceled/expired; create charge/cart through an idempotent workflow keyed by commission, purpose, amount, and pricing version. Add a nullable unique `payment_event_key` to CommissionEvent so capture/refund side effects deduplicate by Medusa payment/capture/refund identity without creating a second payment ledger.
-- [ ] **Gate production on authoritative payment state.** The payment.captured subscriber re-queries the Medusa Payment, Capture, Payment Collection, and Charge association. Require captured net amount to equal the server charge amount and currency to match exactly before deposit_pending → sculpting or balance_pending → shipped. Deduplicate by charge + Medusa payment/capture ID. Consume payment.refunded and dispute events by re-querying Medusa state; hold shipping/production when net captured funds no longer meet policy. Do not add a second Stripe webhook endpoint or trust raw Stripe event payloads in the custom workflow.
+- [ ] **Add charge-payment mapping and uniqueness.** CommissionCharge stores status requires_payment|processing|authorized|captured|partially_refunded|refunded|canceled|expired|mismatch|mismatch_resolved; payment_collection_id, payment_session_id, payment_id, provider_payment_id, amount_captured_minor, paid_at, commission_aggregate_version_at_creation, disputed_at, payment_hold default(false), mismatch_resolved_at, strict pricing_snapshot, and snapshot_sha256. Link Charge to Payment Collection as its sole payment-side anchor; never link Charge directly to Cart or Order. Add one-active-charge partial unique index on (commission_id, purpose), excluding only canceled, expired, and audited mismatch_resolved; mismatch remains blocking until provider exposure is reconciled. Create checkout with idempotency key. Add nullable unique CommissionEvent.payment_event_key for Medusa payment/capture/refund identities.
+- [ ] **Gate production on authoritative payment state.** The payment.captured, payment.refunded, and dispute subscribers are wake-ups only and call the same reconciliation workflow as the scheduled job. Resolve Payment by payment_collection_id, then the unique Charge↔Payment Collection Module Link; re-read Payment.captured_at, captured_amount, refunded_amount, currency, dispute state, and Charge.payment_hold from Medusa. Require exact captured amount and currency, zero refund, no dispute/hold before deposit_pending → sculpting or balance_pending → shipped. Never trust the event payload or browser redirect as payment truth; deduplicate by charge plus Medusa payment/capture/refund identity.
+- [ ] **Add the 60-second payment reconciler.** Create `apps/medusa/src/jobs/reconcile-commission-payments.ts` and call the `reconcile-commission-payment.ts` workflow for each active CommissionCharge in `requires_payment|processing|authorized`, plus `captured` charges whose Commission transition is still pending, with a Payment Collection link. Run every 60 seconds. Resolve PaymentCollection→CommissionCharge through the Module Link; read Payment/Capture/Refund through Medusa Query/Payment APIs; derive capture/refund identity and compare the unique successful `payment_event_key`. If a captured Payment has no marker, run the atomic charge claim. If marker exists but the Commission transition is stale, retry only that guarded transition. If payment is only authorized, leave it unpaid and alert after the configured authorization-age threshold without calling Stripe or advancing production. Missing/ambiguous links or amount/currency mismatch fail closed and alert. Subscriber and job share one idempotent workflow, so missed events/overlapping ticks cannot duplicate effects.
 - [ ] **Define and enforce staff roles.** Add apps/medusa/src/modules/staff-access/ or an explicit versioned policy module with ops|artist|finance|admin role assignment. Every Admin custom route authenticates the user and then calls requireRole. finance controls price overrides/refunds; artist controls proof upload/send; ops controls assignment/shipping; admin manages all. Record role, actor, reason, and aggregate_version in events. Do not treat authenticate(user) as role authorization.
 - [ ] **Protect customer and private-media routes.** Require signed-in customer auth for all commission Store API routes; derive actor from auth_context. On every owner check, require exactly one matching Customer Module Link and matching owner_customer_id. Add an exact Origin allowlist and JSON content type for browser mutations at the Next.js BFF/Medusa boundary; missing or foreign browser Origin fails closed. Create apps/storefront/src/app/api/private/[module]/[asset_id]/route.ts as the private asset resolver; never accept a bucket, object key, parent ID, or filename from the caller. Check owner, role, Commission state, asset state, and deletion status on every request; use uniform 404 for unknown/foreign/wrong-state IDs.
 - [ ] **Secure asset delivery and proof intake.** Select proxy versus signed redirect in Section 11. Use short-lived reads only after authorization; proxy proofs/models if the signed URL must not reach the browser; set no-store, no-referrer, nosniff, safe Content-Disposition, and fixed MIME types. Scan staff proofs as well as customer uploads; accept raster JPEG/PNG/WebP only unless another format is explicitly sanitized. Enforce separate processing and marketing consent; publish only a derivative after marketing consent and delete it on revocation.
@@ -2293,46 +2378,15 @@ export const QuotePriceSnapshotSchema = z.object({
   machine_minor: z.number().int().nonnegative(),
   postprocess_minor: z.number().int().nonnegative(),
   minimum_minor: z.number().int().nonnegative(),
-  margin_bps: z.number().int().nonnegative(),
+  margin_bps: z.number().int().nonnegative().max(100_000),
   rounding: z.literal("ceil_each_component_then_total"),
 }).strict()
 
-const finite = z.number().finite()
-const mm = finite.nonnegative().max(200_000)
-
-const MeshResultBase = z.object({
-  schema_version: z.literal(1),
-  job_id: z.string().uuid(),
-  asset_id: z.string().min(1).max(128),
-  spec_revision: z.number().int().positive(),
-  input_sha256: z.string().regex(/^[a-f0-9]{64}$/),
-  parser_version: z.string().regex(/^\d+\.\d+\.\d+$/),
-})
-
-const MeshSuccess = MeshResultBase.extend({
-  result: z.enum(["valid", "review_required"]),
-  unit: z.enum(["mm", "inch", "unknown"]),
-  bounds_mm: z.object({ x: mm, y: mm, z: mm }).strict()
-    .refine((b) => Math.max(b.x, b.y, b.z) > 0, "at least one axis must be positive"),
-  volume_mm3: finite.nonnegative().max(1e12),
-  vertex_count: z.number().int().nonnegative().max(2_000_000),
-  triangle_count: z.number().int().nonnegative().max(2_000_000),
-  component_count: z.number().int().nonnegative().max(10_000),
-  watertight: z.boolean(),
-  manifold: z.boolean(),
-  reasons: z.array(z.enum(["unknown_unit", "non_manifold", "open_shell", "multi_shell", "volume_ratio_low", "volume_ratio_high", "near_build_limit"])).max(8),
-}).strict()
-
-const MeshRejected = MeshResultBase.extend({
-  result: z.literal("rejected"),
-  reason: z.enum(["E_SIZE", "E_MAGIC", "E_ARCHIVE", "E_BOMB", "E_XML", "E_REF", "E_COMPLEXITY", "E_GEOMETRY", "E_TIMEOUT", "E_RESULT"]),
-}).strict()
-
-export const MeshAnalysisResultSchema = z.discriminatedUnion("result", [MeshSuccess, MeshRejected])
+export { MeshAnalysisResultSchema } from "./mesh-analysis"
+export type { MeshAnalysisResult } from "./mesh-analysis"
 
 export type CreateQuoteInput = z.infer<typeof CreateQuoteInputSchema>
 export type CreateUploadIntentInput = z.infer<typeof CreateUploadIntentSchema>
-export type MeshAnalysisResult = z.infer<typeof MeshAnalysisResultSchema>
 export type UploadIntent = z.infer<typeof UploadIntentSchema>
 export type AcceptQuote = z.infer<typeof AcceptQuoteSchema>
 export type QuotePriceSnapshot = z.infer<typeof QuotePriceSnapshotSchema>
@@ -2355,8 +2409,8 @@ export const Quote = model.define("quote", {
   infill_percent: model.number().nullable(),
   layer_height_mm: model.number().nullable(),
   customer_notes: model.text().nullable(),
-  aggregate_version: model.number(),
-  spec_revision: model.number(),
+  aggregate_version: model.number().default(1),
+  spec_revision: model.number().default(1),
   currency_code: model.text().nullable(),
   total_minor: model.number().nullable(),
   pricing_version: model.text().nullable(),
@@ -2384,14 +2438,15 @@ export const QuoteAsset = model.define("quote_asset", {
   sha256: model.text().nullable(),
   staging_key: model.text().unique(),
   quarantine_key: model.text().unique().nullable(),
-  state: model.enum(["intent", "uploaded", "quarantined", "processing", "accepted", "rejected", "deleted", "expired", "abandoned"]),
+  state: model.enum(["intent", "uploaded", "quarantined", "processing", "retryable_error", "accepted", "rejected", "deleted", "expired", "abandoned"]),
   finalized_at: model.dateTime().nullable(),
-  finalize_attempt_count: model.number(),
-  parse_attempt_count: model.number(),
-  sign_count: model.number(),
+  finalize_attempt_count: model.number().default(0),
+  parse_attempt_count: model.number().default(0),
+  sign_count: model.number().default(0),
   analysis_job_id: model.text().nullable(),
   intent_expires_at: model.dateTime(),
   retention_deadline: model.dateTime().nullable(),
+  deleted_at: model.dateTime().nullable(),
   virus_scan_state: model.enum(["pending", "clean", "infected", "error"]),
   virus_scanner_version: model.text().nullable(),
   virus_scan_completed_at: model.dateTime().nullable(),
@@ -2438,27 +2493,28 @@ export const QuoteEvent = model.define("quote_event", {
 })
 ~~~
 
-- [ ] **Create shared contracts.** Add packages/contracts/src/quote.ts and mesh-analysis.ts. Export QUOTE_STATUSES = ["draft","upload_pending","quarantined","processing","review_required","estimated","sent","accepted","converted","expired","cancelled","rejected"] as const; QuoteStatus; strict CreateQuoteInputSchema, CreateUploadIntentSchema, UploadIntentSchema, MeshAnalysisResultSchema, QuotePriceSnapshotSchema, AcceptQuoteSchema, and customer/Admin DTO schemas. CreateQuoteInputSchema accepts controlled process_key/material_key/finish_key, quantity integer 1–100, optional infill_percent and layer_height_mm, and customer_notes max 2,000 chars. Do not accept file name, IDs, status, geometry, price, currency, expiry, or object key as trusted values. The upload-intent request accepts extension and provisional byte_size, optional declared_content_type/client SHA-256 claims; derive canonical Content-Type from extension on the server, reject any declared-type mismatch, and verify actual object bytes/hash before acceptance. Validate option keys against server-side versioned capabilities.
+- [ ] **Create shared contracts.** Add packages/contracts/src/quote.ts and mesh-analysis.ts. Define `MeshAnalysisResultSchema` exactly once in `mesh-analysis.ts` using Section 8.7.4 V1; `quote.ts` imports/re-exports that definition and never recreates it. Export QUOTE_STATUSES = ["draft","upload_pending","quarantined","processing","review_required","estimated","sent","accepted","converted","expired","cancelled","rejected"] as const; QuoteStatus; strict CreateQuoteInputSchema, CreateUploadIntentSchema, UploadIntentSchema, QuotePriceSnapshotSchema, AcceptQuoteSchema, and customer/Admin DTO schemas. CreateQuoteInputSchema accepts controlled process_key/material_key/finish_key, quantity integer 1–100, optional infill_percent and layer_height_mm, and customer_notes max 2,000 chars. Do not accept file name, IDs, status, geometry, price, currency, expiry, or object key as trusted values. The upload-intent request accepts extension and provisional byte_size, optional declared_content_type/client SHA-256 claims; derive canonical Content-Type from extension on the server, reject any declared-type mismatch, and verify actual object bytes/hash before acceptance. Validate option keys against server-side versioned capabilities.
 - [ ] **Create apps/medusa/src/modules/quotes/.** Files: index.ts, service.ts, models/quote.ts, quote-asset.ts, quote-analysis.ts, and quote-event.ts. Export QUOTES_MODULE = "quotes"; register Module(QUOTES_MODULE, { service: QuotesModuleService }); extend MedusaService({ Quote, QuoteAsset, QuoteAnalysis, QuoteEvent }). The module service owns custom persistence only and never reads/writes Customer, Cart, Order, Payment, or File tables.
-- [ ] **Define DML models using @medusajs/framework/utils.** Use model.define, model.id().primaryKey(), model.text(), model.number(), model.boolean(), model.enum(...), model.dateTime(), model.json(), and same-module belongsTo/hasMany. Timestamps are automatic. Quote fields: id, server-derived owner_customer_id, status enum above, process_key, material_key, finish_key, quantity, nullable infill_percent/layer_height_mm/customer_notes, aggregate_version, spec_revision, currency_code, nullable total_minor/pricing_version/expires_at/accepted_at/converted_at/pricing_snapshot/snapshot_sha256, and assets/analyses/events hasMany. QuoteAsset: id, belongsTo quote, role enum ["model"], unique public_asset_id, spec_revision, finalized_at, sanitized original_filename, extension enum ["stl","obj","3mf"], server-assigned declared_content_type, actual byte_size, trusted sha256, unique opaque staging_key/quarantine_key, claimed_byte_size, nullable actual byte_size, client_sha256_claim, trusted sha256, state enum ["intent","uploaded","quarantined","processing","accepted","rejected","deleted","expired","abandoned"], intent_expires_at, retention_deadline, sign_count, analysis_job_id, finalize_attempt_count, parse_attempt_count. QuoteAnalysis: id, belongsTo quote and asset, unique job_id, input_sha256, spec_revision, schema_version, parser_version, nullable unit and geometry/count metrics for rejected results, rejection_reason, analysis_state enum ["valid","review_required","rejected"], completed_at. QuoteEvent: id, belongsTo quote, event_type, actor_type enum ["customer","user","system","worker"], actor_id, from_status/to_status, aggregate_version, spec_revision, nullable bounded reason, occurred_at. Validate every JSON with a strict shared Zod schema. Never put asset lists, analysis rows, or status history in metadata. ([DML](https://docs.medusajs.com/learn/fundamentals/data-models), [properties](https://docs.medusajs.com/learn/fundamentals/data-models/properties))
+- [ ] **Define DML models using @medusajs/framework/utils.** Use model.define, model.id().primaryKey(), model.text(), model.number(), model.boolean(), model.enum(...), model.dateTime(), model.json(), `.default(...)`, and same-module belongsTo/hasMany. Timestamps are automatic. Quote fields: id, server-derived owner_customer_id, status enum above, process_key, material_key, finish_key, quantity, nullable infill_percent/layer_height_mm/customer_notes, `aggregate_version` default 1, `spec_revision` default 1, currency_code, nullable total_minor/pricing_version/expires_at/accepted_at/converted_at/pricing_snapshot/snapshot_sha256, and assets/analyses/events hasMany. QuoteAsset: id, belongsTo quote, role enum ["model"], unique public_asset_id, spec_revision, finalized_at, sanitized original_filename, extension enum ["stl","obj","3mf"], server-assigned declared_content_type, claimed_byte_size explicitly set from validated create-intent claim, nullable verified byte_size, client_sha256_claim, trusted sha256, unique opaque staging_key/quarantine_key, state enum ["intent","uploaded","quarantined","processing","retryable_error","accepted","rejected","deleted","expired","abandoned"], intent_expires_at, nullable deleted_at, retention_deadline, sign_count/finalize_attempt_count/parse_attempt_count each default 0, analysis_job_id. QuoteAnalysis: id, belongsTo quote and asset, unique job_id, input_sha256, spec_revision, schema_version, parser_version, nullable unit and geometry/count metrics for rejected results, rejection_reason, analysis_state enum ["valid","review_required","rejected"], completed_at. QuoteEvent: id, belongsTo quote, event_type, actor_type enum ["customer","user","system","worker"], actor_id, from_status/to_status, aggregate_version, spec_revision, nullable bounded reason, occurred_at. Validate every JSON with a strict shared Zod schema. Never put asset lists, analysis rows, or status history in metadata. ([DML](https://docs.medusajs.com/learn/fundamentals/data-models), [properties](https://docs.medusajs.com/learn/fundamentals/data-models/properties))
 - [ ] **Persist virus-scan facts on QuoteAsset.** Add virus_scan_state enum pending|clean|infected|error, nullable virus_scanner_version, and nullable virus_scan_completed_at. Set state to clean only on a completed clean scan; infected/error/unavailable input cannot enter parser queue. Do not duplicate scanner findings in customer-facing metadata.
 - [ ] **Implement Quote and QuoteAsset model source in the paths above using this DML shape.** Quote includes server-derived owner_customer_id, aggregate_version, spec_revision, pricing_snapshot, and snapshot_sha256. QuoteAsset includes separate public_asset_id, spec_revision, finalized_at, sign_count, finalize_attempt_count, parse_attempt_count, analysis_job_id, trusted SHA-256, and quarantine lifecycle. QuoteAnalysis includes job_id, input_sha256, spec_revision, parser/schema versions, nullable geometry metrics for rejected results, rejection_reason, and Quote/Asset relations. QuoteEvent includes aggregate_version/spec_revision and is append-only. Keep model definitions in separate files and import them into service.ts. Generate and apply the custom-module migration; add supplemental unique indexes inside that module migration for `(quote_id, spec_revision)` live assets and `(asset_id, parser_version, input_sha256)` analysis idempotency. Do not create Commerce Module tables or write to them directly. ([Relationships](https://docs.medusajs.com/learn/fundamentals/data-models/relationships))
 - [ ] **Create Module Links in apps/medusa/src/links/.** Add quote-customer.ts, quote-cart.ts, and quote-order.ts between the custom Quote and native Customer/Cart/Order linkables. Phase 4 v1 cardinality: one Quote to one owner, one current checkout Cart, and one converted Order; one Customer to many Quotes. Define Customer→Quote with `isList: true` on the Quote linkable. Quote deposit/balance is not part of v1 unless the Section 3 commercial decision explicitly approves it; an approved deposit feature requires a QuoteCharge DML model and revised Cart/Order/Payment Collection links before implementation. Link IDs are stored in Module Link tables; validate ownership in workflows. Guest quotes, if approved, require a separate expiring capability token; email equality is never authorization. Run `pnpm --dir apps/medusa exec medusa db:migrate` after changes. ([Module Links](https://docs.medusajs.com/learn/fundamentals/module-links))
-- [ ] **Create workflows in apps/medusa/src/workflows/quotes/.** Files: create-quote.ts, create-upload-intent.ts, finalize-upload.ts, enqueue-analysis.ts, accept-analysis-result.ts, calculate-estimate.ts, send-for-review.ts, staff-revise-quote.ts, accept-quote.ts, convert-quote-to-cart.ts, expire-quote.ts, delete-expired-assets.ts. Use createWorkflow/createStep/StepResponse/WorkflowResponse, compensation, @medusajs/medusa/core-flows, and strict schema input. create-quote.ts sets status=draft, aggregate_version=1, and spec_revision=1 server-side. Add idempotency keys and expected-state/revision checks. API routes do not orchestrate modules by calling service methods directly.
-- [ ] **Create Store API routes under apps/medusa/src/api/store/custom/quotes/.** route.ts POST creates a quote; [id]/route.ts GET returns owner-safe DTO; [id]/assets/upload-intents/route.ts POST reserves one upload; [id]/assets/[asset_id]/finalize/route.ts POST finalizes upload; [id]/analysis/route.ts GET returns validated analysis/estimate only; [id]/accept/route.ts POST accepts exact revision; [id]/checkout/route.ts POST creates/updates Medusa cart. Keep validators in validators.ts. Protect routes in apps/medusa/src/api/middlewares.ts with customer authentication, owner checks, origin/CSRF, request limits, per-customer/IP quotas, and idempotency.
-- [ ] **Create upload intent and private R2 transfer.** Configure separate public-assets, private-staging, and private-quarantine R2 buckets. Add R2_PRIVATE_ENDPOINT, R2_PRIVATE_REGION=auto, R2_UPLOAD_STAGING_BUCKET, R2_UPLOAD_STAGING_ACCESS_KEY_ID, R2_UPLOAD_STAGING_SECRET_ACCESS_KEY, R2_UPLOAD_QUARANTINE_BUCKET, R2_UPLOAD_QUARANTINE_ACCESS_KEY_ID, R2_UPLOAD_QUARANTINE_SECRET_ACCESS_KEY, R2_WORKER_ACCESS_KEY_ID, R2_WORKER_SECRET_ACCESS_KEY, and UPLOAD_INTENT_SECRET to backend/worker secret stores only. Give Medusa only the staging signer/reader key and a separate quarantine-writer key; give the trusted worker supervisor a distinct read-only quarantine key; give the parser sandbox no storage credentials. On create, derive customer from authenticated Medusa context and create Quote↔Customer link. Upload-intent route verifies owner/status, permits one model per spec_revision, allowlists .stl/.obj/.3mf, maps extension to a server-owned canonical Content-Type, creates an opaque staging key and 15-minute expiry, and returns a single-key, single-operation presigned R2 PUT instruction plus a short-lived HMAC token. Sign only the exact server-assigned Content-Type, optional checksum header, and If-None-Match: *. Do not sign Content-Length as a size cap. Set staging-bucket CORS to exact production/staging storefront origins and PUT only. Browser never chooses a bucket/key or receives GET/DELETE rights. Initial input cap is 100 MiB. A strict pre-storage cap must use the streaming upload gateway; otherwise enforce at finalize, delete oversized staging objects, and alert on quota/cost thresholds.
+- [ ] **Create workflows in apps/medusa/src/workflows/quotes/.** Files: create-quote.ts, create-upload-intent.ts, finalize-upload.ts, enqueue-analysis.ts, record-analysis-failure.ts, accept-analysis-result.ts, calculate-estimate.ts, send-for-review.ts, staff-revise-quote.ts, accept-quote.ts, convert-quote-to-cart.ts, expire-quote.ts, delete-expired-assets.ts. Use createWorkflow/createStep/StepResponse/WorkflowResponse, compensation, @medusajs/medusa/core-flows, and strict schema input. create-quote.ts sets status=draft, aggregate_version=1, and spec_revision=1 server-side. Add idempotency keys and expected-state/revision checks. API routes do not orchestrate modules by calling service methods directly.
+- [ ] **Create Store API routes under apps/medusa/src/api/store/custom/quotes/.** route.ts POST creates a quote; [id]/route.ts GET returns owner-safe DTO; [id]/assets/upload-intents/route.ts POST reserves one upload; [id]/assets/[asset_id]/finalize/route.ts POST finalizes upload; [id]/analysis/route.ts GET returns validated analysis/estimate only; [id]/accept/route.ts POST accepts exact revision; [id]/checkout/route.ts POST creates/updates Medusa cart. Add `apps/medusa/src/api/internal/custom/quotes/analysis-failures/route.ts` accepting only signed supervisor reports with `{job_id, asset_id, spec_revision, failure_code}` where failure_code is a fixed enum `timeout|sandbox_exit|resource_limit|transient_parser_error`; reject details, paths, stack traces, and arbitrary codes. Route verifies HMAC/timestamp/nonce before calling `record-analysis-failure.ts`. Keep validators in validators.ts. Protect routes in apps/medusa/src/api/middlewares.ts with customer/worker authentication as appropriate, owner checks, origin/CSRF, request limits, per-customer/IP quotas, and idempotency.
+- [ ] **Create upload intent and private R2 transfer.** Configure separate public-assets, private-staging, and private-quarantine R2 buckets. Add R2_PRIVATE_ENDPOINT, R2_PRIVATE_REGION=auto, R2_UPLOAD_STAGING_BUCKET, R2_UPLOAD_STAGING_ACCESS_KEY_ID, R2_UPLOAD_STAGING_SECRET_ACCESS_KEY, R2_UPLOAD_QUARANTINE_BUCKET, R2_UPLOAD_QUARANTINE_ACCESS_KEY_ID, R2_UPLOAD_QUARANTINE_SECRET_ACCESS_KEY, R2_WORKER_ACCESS_KEY_ID, R2_WORKER_SECRET_ACCESS_KEY, R2_DOWNLOAD_SIGNER_ACCESS_KEY_ID, R2_DOWNLOAD_SIGNER_SECRET_ACCESS_KEY, and UPLOAD_INTENT_SECRET in assigned secret stores. Medusa receives the staging signer/reader, quarantine-writer, and separate download-signer credentials; only the worker supervisor receives a distinct read-only quarantine key; the parser sandbox receives no storage credential. On create, derive customer from authenticated Medusa context and create Quote↔Customer link. Validate claimed byte_size is an integer in 1..100 MiB before signing, but treat it only as a claim and verify actual bytes at finalize. Upload-intent route verifies owner/status, allowlists .stl/.obj/.3mf, maps extension to server-owned canonical Content-Type, and issues one exact-key 15-minute PUT instruction plus short-lived HMAC token. On an unfinalized retry for the same spec_revision, atomically mark the prior live intent abandoned and append QuoteEvent before inserting its replacement, in the same custom-module transaction; do not abandon finalized/processing assets. Replacing finalized model content increments spec_revision and records an event. Sign only exact Content-Type, optional checksum, and If-None-Match: *. Do not sign Content-Length as a size cap. Exact storefront-origin PUT-only CORS; browser never chooses bucket/key or receives GET/DELETE rights. Initial input cap is 100 MiB. A strict pre-storage cap requires the streaming upload gateway; otherwise enforce at finalize, delete oversized staging objects, and alert on quota/cost thresholds.
 - [ ] **Finalize using server-side evidence.** Atomically claim the live intent with row lock/revision check; recompute and constant-time validate the HMAC token; HEAD the exact private key; reject missing, expired, reused, claimed-size-mismatched, or >100 MiB files. Copy to a unique quarantine key through a byte-counting stream while calculating SHA-256; abort immediately above the cap, verify any checksum claim, and record trusted hash. Treat copy/delete as separate idempotent operations, not an atomic rename. Delete staging only after verified quarantine copy. Extension/MIME/browser preview/client hash/ETag are hints only. Enqueue only asset_id, quote_id, job_id, spec_revision, and trusted hash; never put file bytes, upload_token, or presigned URL in Redis payloads/logs.
 - [ ] **Virus-scan quarantined input as a secondary control.** Add apps/private-media-worker/src/scanner.ts and run ClamAV clamd against the bounded quarantine stream before parsing. The scanner receives no R2 credentials, customer-facing network access, or mutable host paths. Require a healthy scanner and current signature database; fail closed on infected result, timeout, or scanner outage. Store scanner version/state/completion on QuoteAsset and append a QuoteEvent scan audit record. Malware scanning never replaces archive preflight, parser limits, or the gVisor/microVM boundary.
+- [ ] **Enqueue mesh analysis with a bounded attempt counter.** Implement `apps/medusa/src/workflows/quotes/enqueue-analysis.ts`. For a first attempt, lock QuoteAsset and require current spec_revision, state=quarantined, and trusted sha256; for retries require state=retryable_error and the same current revision/hash. The Quotes module transaction allocates/persists a new job_id and increments parse_attempt_count exactly once before publishing to BullMQ. If the counter is already 3, transition asset and Quote to terminal rejected with retry_exhausted, append QuoteEvent, and do not enqueue. Publish only quote_id, asset_id, job_id, spec_revision, and sha256; use job_id as BullMQ jobId. If queue acknowledgement is uncertain, retry publishing the same jobId without another increment. The worker never increments parse_attempt_count. A completed transient failure is recorded by `record-analysis-failure.ts`; if fewer than three attempts have run, set asset=retryable_error and schedule a new enqueue workflow; after the third failed/timed-out job, set asset and Quote rejected with retry_exhausted.
 - [ ] **Create the parser worker in apps/private-media-worker/.** Files: package.json, tsconfig.json, Dockerfile, src/consumer.ts, src/job-schema.ts, src/r2-reader.ts, src/result-client.ts, src/sandbox/adapter.ts, parser/pyproject.toml, and parser/src/forma_mesh_parser/{__init__.py,main.py,preflight.py,parse_mesh.py,result_schema.py,limits.py}. Trusted Node supervisor uses bullmq, ioredis, @aws-sdk/client-s3, @aws-sdk/s3-request-presigner, and zod. Give it a dedicated Redis endpoint supporting BullMQ blocking commands and separate prefix/credentials from Medusa workflow-engine Redis. Parser uses Python 3.12 with pinned trimesh, numpy, lxml, networkx, and defusedxml; use stdlib zipfile for 3MF preflight. Do not install trimesh[easy], arbitrary format plugins, shell utilities, or floating dependencies.
 - [ ] **Fail closed unless a real parser sandbox is configured.** src/sandbox/adapter.ts accepts only a deployment adapter that starts a fresh gVisor (runsc) sandbox or microVM for each parse; worker startup fails if neither isolation mode is proven. Sandbox: UID 10001 non-root; read-only root filesystem; drop all Linux capabilities; no-new-privileges; seccomp; no host mounts/Docker socket; no database, queue, or R2 credentials; no inbound/general outbound network; bounded tmpfs; CPU 2 cores; memory 2 GiB; PIDs 64; temporary disk 768 MiB; wall timeout 60 seconds. Supervisor alone reads quarantine data and submits bounded JSON. Never parse in Next.js, Medusa API, Admin, shared web process, or plain OCI container without gVisor/microVM. ([gVisor](https://gvisor.dev/docs/), [Docker security](https://docs.docker.com/reference/cli/docker/container/run), [resource limits](https://docs.docker.com/engine/containers/resource_constraints))
 - [ ] **Enforce hostile-input caps before mesh allocation.** Initial limits: input ≤100 MiB; 3MF ≤256 ZIP entries, ≤64 MiB per entry, and ≤512 MiB total actually expanded bytes; compression ratio ≤20:1; path depth ≤8 and path length ≤240 bytes; each XML part ≤10 MiB, depth ≤64, elements ≤2,000,000, and attributes ≤32 per element. Reject encryption, symlinks, duplicate normalized paths, absolute paths, .., unsupported compression, nested archive extraction, XML DTD/entities/external references, remote OBJ/MTL/texture references, NaN/Infinity, coordinate magnitude >100,000 mm, >2,000,000 vertices or triangles, and parse time >60 seconds. Store exact values in parser/src/forma_mesh_parser/limits.py. Raise caps only after benchmark/load/security review and a Section 11 decision-log entry.
 - [ ] **Implement parser preflight and parse separately.** preflight.py validates extension allowlist, magic/header, raw size, ZIP central directory and compressed/expanded sizes, normalized paths, XML parser flags, and OBJ external references before trimesh loads anything. parse_mesh.py supports only STL/OBJ/3MF via pinned trimesh APIs, process=False, no resolver/network, no plugin discovery. Normalize known units to mm; compute bounds, volume, vertex/triangle/component counts, watertight/manifold flags, and finite-coordinate checks. Never evaluate scripts, execute binaries, invoke a shell, fetch URLs, or write outside sandbox tmpfs.
 - [ ] **Validate parser output before persistence.** MeshAnalysisResultSchema is strict/versioned: schema_version: 1, job_id, opaque string asset_id, spec_revision, input_sha256, parser_version, unit, bounds_mm: {x,y,z}, volume_mm3, vertex_count, triangle_count, component_count, watertight, manifold, and a valid|review_required|rejected discriminator. Require finite numbers, non-negative bounds with at least one positive axis for non-rejected results, bounded non-negative integer counts, exact asset/hash/job/spec_revision match, and reject unknown fields. Worker returns JSON only, never path/raw mesh/URL/trace. Medusa internal result route authenticates a rotating worker credential, validates schema, verifies job ownership/idempotency, persists QuoteAnalysis, and transitions Quote to estimated/review_required/rejected.
 - [ ] **Add non-authoritative browser preview.** Implement apps/storefront/src/app/(store)/custom-printing/quote/page.tsx and apps/storefront/src/components/quote/model-preview.tsx. Use three addon loaders STLLoader from three/addons/loaders/STLLoader.js, OBJLoader from three/addons/loaders/OBJLoader.js, and ThreeMFLoader from three/addons/loaders/3MFLoader.js. Skip preview for files over 25 MiB; transfer smaller local files to a dedicated Web Worker, terminate after 8 seconds or unmount, and do not load MTL/texture references, URLs, or remote resources. Browser bounds are display-only and never sent as trusted data. Show “preview only; server analysis pending” until validated backend result; preserve upload when preview fails. ([STLLoader](https://threejs.org/docs/pages/STLLoader.html), [OBJLoader](https://threejs.org/docs/pages/OBJLoader.html), [ThreeMFLoader](https://threejs.org/docs/pages/3MFLoader.html))
-- [ ] **Implement the pricing engine under apps/medusa/src/modules/quotes/pricing/.** Files: rules.schema.ts, rules.ts, calculate-price.ts, index.ts. Version server-only approved machine/material rates, setup fee, post-process fee, minimum charge, margin basis points, build limits, quantity rules, currency, and effective date. Use decimal.js for intermediate arithmetic; convert volume_cm3 = volume_mm3 / 1000; derive machine_seconds from the approved process/profile estimator, never from client input; persist integer minor units. Formula: material_minor = ceil(volume_cm3 × material_rate_minor_per_cm3); machine_minor = ceil(machine_seconds × machine_rate_minor_per_second); base_minor = setup_minor + material_minor + machine_minor + postprocess_minor; unit_minor = ceil(base_minor × margin_bps / 10000); total_minor = unit_minor × quantity, then apply configured minimum. Snapshot every input/rate/formula version/rounding rule/currency/result. Until Section 3 approves actual rates/processes/build envelope, all valid files go to review_required; never show a fabricated instant price.
+- [ ] **Implement the pricing engine under apps/medusa/src/modules/quotes/pricing/.** Files: rules.schema.ts, rules.ts, calculate-price.ts, index.ts. Version server-only approved machine/material rates, setup fee, post-process fee, minimum charge, margin basis points constrained to integer 0–100,000, build limits, quantity rules, currency, and effective date. Use decimal.js for intermediate arithmetic; convert volume_cm3 = volume_mm3 / 1000; derive machine_seconds from approved process/profile estimator, never client input; persist integer minor units. Formula: material_minor = ceil(volume_cm3 × material_rate_minor_per_cm3); machine_minor = ceil(machine_seconds × machine_rate_minor_per_second); base_minor = setup_minor + material_minor + machine_minor + postprocess_minor; unit_minor = ceil(base_minor × margin_bps / 10000); total_minor = unit_minor × quantity, then apply configured minimum. Snapshot every input/rate/formula version/rounding rule/currency/result. Until Section 3 approves actual rates/processes/build envelope, all valid files go to review_required; never show a fabricated instant price.
 - [ ] **Route ambiguous/high-risk geometry to human review.** Manual review is required for STEP/IGES and every non-allowlisted format; unknown units; non-watertight/non-manifold geometry; multiple ambiguous shells; build-envelope/complexity overflow; timeout; parser disagreement; uncertain scale; or missing approved pricing rules. Never silently repair geometry or use client values to price. Staff may request replacement upload or revise with an audit reason.
-- [ ] **Accept and convert only the current revision.** accept-quote.ts verifies authenticated owner, status sent, expiry, exact aggregate_version + spec_revision, and server price snapshot hash. convert-quote-to-cart.ts creates/reuses the customer's Medusa cart, adds a dedicated custom-print service variant with server-set custom unit price through Medusa custom item pricing workflow, writes only {quote_id, accepted_spec_revision} in line-item metadata, links Quote↔Cart, and delegates tax/shipping/promotions/totals to Medusa. Reject client unit price. On order.placed, apps/medusa/src/subscribers/quote-order-link.ts verifies cart/quote link and idempotently associates Quote↔Order. Never insert directly into Order Module.
-- [ ] **Use one full-payment checkout for Phase 4 v1.** Convert an accepted Quote into one server-priced cart and one Medusa Order through the normal Payment Collection/Stripe session/cart-completion workflows. Never create a deposit or balance order until the Section 3 commercial decision approves it. If deposits are approved, first add the QuoteCharge DML schema, unique active-charge constraint, QuoteCharge↔Cart/Order/Payment Collection Module Links, and native-provider capture/refund subscriber; then update the migration plan before implementation. Do not call Stripe directly, trust redirects, or maintain a shadow payment ledger.
+- [ ] **Accept and convert only the current revision.** accept-quote.ts verifies authenticated owner, status sent, expiry, exact aggregate_version + spec_revision, and server price snapshot hash. convert-quote-to-cart.ts creates/reuses the customer Medusa cart, adds a dedicated custom-print service variant with server-set custom unit price through Medusa custom item pricing workflow, writes only {quote_id, accepted_spec_revision} in line-item metadata, links Quote↔Cart, and delegates tax/shipping/promotions/totals to Medusa. Reject client unit price. On order.placed, apps/medusa/src/subscribers/quote-order-link.ts verifies cart/quote link and idempotently associates Quote↔Order. Never insert directly into Order Module.
+- [ ] **Use one full-payment checkout for Phase 4 v1.** Convert an accepted Quote into one server-priced cart and one Medusa Order through normal Payment Collection/Stripe session/cart-completion workflows. Deposits/balances are out of v1 unless a Section 3 decision explicitly approves them. If approved, add QuoteCharge DML + strict snapshot/hash, one-active-charge uniqueness, QuoteCharge↔Payment Collection Module Link only, PaymentCollection-native Cart/Order traversal, native Medusa capture/refund reconciliation plus 60-second recovery, and revised security tests before implementation. Never add Charge↔Cart/Order authority, call Stripe directly, trust redirects, or maintain a shadow ledger.
 - [ ] **Create Admin quote APIs and screens.** APIs under apps/medusa/src/api/admin/custom/quotes/ provide list/filter/detail, short-lived authorized preview, assignment, approve/reject/revise price, replacement upload request, and send quote. Require Admin auth, record actor/reason/revision, and call workflows. UI at apps/medusa/src/admin/routes/quotes/page.tsx and routes/quotes/[id]/page.tsx uses @medusajs/admin-sdk and @medusajs/ui. Show sanitized filename, parser state, dimensions, volume, triangle count, watertightness, price snapshot, expiry, and order links. Build and deploy it as the standalone Admin SPA artifact.
 - [ ] **Add expiry, retention, and emails.** A Medusa scheduled job runs expire-quote.ts for expired quotes and unused intents; revoke intent state and delete staging/quarantine objects under approved retention rules, but preserve accepted quote/order records. Send received, analysis-ready/manual-review, quote-sent, expiring, accepted, and rejected emails through Notification Module with deduplication keys. Email links require account authentication; never attach source models or expose keys.
 - [ ] **Exercise hostile inputs and cleanup in isolated infrastructure.** Add apps/private-media-worker/parser/tests/fixtures/ for valid STL/OBJ/3MF, truncated data, bad headers, XML DTD/entity payloads, traversal, duplicate ZIP paths, encrypted ZIP, compression bomb, remote OBJ references, NaN/Infinity, excessive triangles, non-manifold meshes, and CPU/memory timeout. Assert no sandbox egress/secrets/host mounts/process leaks, and verify staging/quarantine cleanup plus idempotent retry. Never run hostile parser fixtures in the production API process.
@@ -2475,7 +2531,7 @@ export const QuoteEvent = model.define("quote_event", {
 - [ ] **Authenticate worker results.** Worker posts bounded JSON only through apps/medusa/src/api/internal/custom/quotes/analysis-results/route.ts using rotating HMAC credentials, key ID, timestamp tolerance, random nonce replay store, and constant-time signature comparison over raw-body SHA-256. Persist only after strict Zod validation, exact job/asset/hash/spec_revision match, parser allowlist check, idempotency claim, and current asset state=processing. Worker has no Medusa/R2/Redis credentials inside gVisor/microVM.
 - [ ] **Keep client preview cosmetic and bounded.** Skip preview above 25 MiB, transfer ArrayBuffer to a dedicated Web Worker, terminate after 8 seconds or unmount, guard STL counts before Three.js loader allocation, cap devicePixelRatio at 1.5, dispose geometry/materials/renderers, and show “preview unavailable — server analysis still running.” No browser-derived geometry reaches pricing.
 - [ ] **Revalidate quote price and conversion.** Add snapshot_sha256 over canonical versioned price inputs/results. At acceptance compare sent status, expiry, expected aggregate_version/spec_revision, and snapshot hash. At conversion recompute using the stored pricing_version and server rules; mismatch returns 409 PRICE_DRIFT and requires a new customer acceptance. Treat line-item metadata quote_id as a claim; resolve authority through the Quote↔Cart Module Link, verify accepted revision and exact server unit price at order.placed, and alert/hold on mismatch.
-- [ ] **Protect retries, route entry, and staff operations.** Cap parser attempts at three; after exhaustion transition to terminal rejected with retry_exhausted. Rate-limit by customer and IP using Section 8.7.3 I. Require exact Origin on browser mutations, authenticate each route, authorize quote ownership, require staff roles for assignment/price/send actions, and run the route sweep. Keep signed URLs and object keys out of logs and queue payloads.
+- [ ] **Protect retries, route entry, and staff operations.** The enqueue-analysis workflow alone increments `parse_attempt_count`; allow at most three distinct parser job IDs, reuse the same ID for queue-delivery retries, and after the third failed/timed-out attempt write terminal `rejected` with `retry_exhausted`. Rate-limit by customer and IP using Section 8.7.3 I. Require exact Origin on browser mutations, authenticate each route, authorize quote ownership, require staff roles for assignment/price/send actions, and run the route sweep. Keep signed URLs and object keys out of logs and queue payloads.
 - [ ] **Pass hostile-input and recovery gates before Phase 4 sign-off.** Generate the fixtures in Section 8.7.4 V7 reproducibly and run them through the real gVisor/microVM adapter in CI/staging. Include zip bombs, XML entities/XXE, traversal, duplicate normalized paths, encrypted ZIP, liar/truncated STL, NaN and negative-index OBJ, oversized faces, remote references, thin/self-intersecting geometry, timeout, memory cap, worker-result forgery/replay, stale revision, finalize replay, and DB/R2 restore reconciliation. Run all Section 8.7.5 staging acceptance criteria.
 
 **Done when:** a customer can upload a supported model and receive a server-validated estimate when approved pricing rules exist, or an explicit manual-review state while those rules remain unapproved; an accepted quote checks out through Medusa; staff can review/revise; unsupported or complex files route to human review.
@@ -2588,10 +2644,12 @@ export const QuoteEvent = model.define("quote_event", {
 | 2026-10-28 | Medusa v2 data and workflow architecture; Next.js data access; private upload/parser boundary | Recommended | Sections 5–6 now use native commerce modules, custom domain modules + links/workflows, JS SDK/App Router, and an isolated R2 file pipeline; not a substitute for remaining business/infrastructure decisions |
 | 2026-10-28 | Implementation-level Phase 1–4 roadmap | Recommended | Added concrete monorepo paths, Medusa v2 DML/Zod contracts, workflows/Module Links, App Router/SDK boundaries, Admin SPA deployment, and bounded private mesh parsing; unresolved Section 3 business/infrastructure choices remain open |
 | 2026-10-28 | Adopt adversarial security POV as Section 8.7 and mandatory Phase 3/4 gates | Confirmed | The threat model, release blockers, hardening controls, and acceptance tests are now part of this plan. Proxy/redirect, retention, role implementation, and hard upload gateway remain open decisions. |
+| 2026-10-28 | Stripe capture policy | Confirmed | Set Stripe `capture: true` explicitly for launch. Deposit percentage remains a separate Section 3 business decision; Medusa Payment state is authoritative. |
 | 2026-10-28 | Private asset delivery method | Open | Decide authorized proxy versus short-lived signed redirect; recommendation is proxy for proofs/models and redirect only for thumbnails. |
 | 2026-10-28 | Private media retention durations | Open | Security review proposes durations in Section 8.7.3 K; obtain legal/privacy approval before configuration. |
-| 2026-10-28 | Staff role granularity | Open | Security review proposes ops, artist, finance, admin with server-side per-route checks; confirm the staffing policy before Phase 3. |
-| 2026-10-28 | Hard upload-size gateway | Open | Prefer Cloudflare Worker streaming cap. If not selected, document residual R2 size/cost risk and require finalize checks, quotas, and alarms before launch. |
+| 2026-10-28 | Staff role granularity | Open | Security review proposes ops, artist, finance, admin with server-side per-route checks; confirm the staffing policy before the first Commission DML migration, not merely before Phase 3. |
+| 2026-10-28 | Hard upload-size gateway | Open | Prefer Cloudflare Worker streaming cap. If not selected, document residual R2 size/cost risk and require finalize checks, quotas, and alarms before Phase 4 release. |
+| 2026-10-28 | Cancellation/refund policy | Open | Define the commercial cancellation window, refund/void handling, and role required before enabling Commission cancellation or refunds. Until approved, keep cancellation commands disabled. |
 
 ---
 
@@ -2657,6 +2715,13 @@ export const QuoteEvent = model.define("quote_event", {
 - Next: confirm open decisions, initialize git, and start Phase 0.
 
 ---
+
+### 2026-10-28 — Payment hardening follow-up adopted
+
+- Adopted the payment review as implementation requirements: `payment.captured` is a wake-up, Medusa Payment/Payment Collection state is authoritative, and an idempotent 60-second reconciler recovers missing events. Pinned launch capture behavior to explicit `capture: true` and kept deposit percentage separate.
+- Clarified Charge→Payment Collection as the sole payment-side Module Link; added authorized-state handling, captured amount/currency/refund/hold guards, mismatch-resolution lifecycle, and price snapshot equality/CAS requirements.
+- Added the Quote intent-abandonment retry transaction, enqueue-owned three-attempt parser counter, R2 download-signer credential boundary, shared mesh contract rule, pricing bound, explicit DML defaults, and CI invariant-tool prerequisites. Staff roles and cancellation/refund policy remain gated decisions.
+- Documentation-only update. `npm run build` passes (Vite retains its >500 kB chunk advisory). `node scripts/functional-test.mjs` passed 12/13 checks on two runs; `mobile menu expands a category and links into the collection` timed out on both. No storefront implementation changed during this update; the baseline timeout is an unchecked Phase 0 follow-up. Only PLAN.md is intended for commit.
 
 ## 14. Quick reference
 
