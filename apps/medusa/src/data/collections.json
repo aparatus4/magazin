@@ -1,0 +1,12 @@
+[
+  {
+    "handle": "ready-to-ship",
+    "title": "Ready to Ship",
+    "description": "Objects in stock and ready to leave the studio. Availability is derived from real inventory, never from a badge."
+  },
+  {
+    "handle": "architectural-models",
+    "title": "Architectural Models",
+    "description": "Scale models and architectural studies made to order."
+  }
+]

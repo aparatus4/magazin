@@ -1,0 +1,152 @@
+[
+  {
+    "handle": "personalised",
+    "name": "Personalised",
+    "tagline": "Likenesses, keepsakes, and gifts with a heartbeat.",
+    "description": "Our signature studio service. Send a photograph, a memory, or an idea — we sculpt it into an object made only for you.",
+    "rank": 0,
+    "subcategories": [
+      { "handle": "personalised-portrait-busts", "name": "Portrait busts", "note": "Sculpted from your photographs" },
+      { "handle": "personalised-pet-sculptures", "name": "Pet sculptures", "note": "A faithful study of your companion" },
+      { "handle": "personalised-couple-figurines", "name": "Couple figurines", "note": "The two of you, cast as one piece" },
+      { "handle": "personalised-wedding-keepsakes", "name": "Wedding keepsakes", "note": "Toppers, vessels, and anniversaries" },
+      { "handle": "personalised-photo-reliefs", "name": "Photo reliefs", "note": "A moment held in shallow relief" },
+      { "handle": "personalised-memorial-pieces", "name": "Memorial pieces", "note": "A quiet way to remember" }
+    ]
+  },
+  {
+    "handle": "home",
+    "name": "Home & Living",
+    "tagline": "Objects that earn their place.",
+    "description": "Lighting, vessels, planters, and small architecture for the everyday. Designed in our studio, printed to order.",
+    "rank": 1,
+    "subcategories": [
+      { "handle": "home-vases-vessels", "name": "Vases & vessels", "note": "Sculptural forms for stems and branches" },
+      { "handle": "home-lighting", "name": "Lighting", "note": "Lamps, pendants, and warm pools of light" },
+      { "handle": "home-planters", "name": "Planters", "note": "Quiet homes for growing things" },
+      { "handle": "home-wall-art", "name": "Wall art", "note": "Reliefs and objects for the wall" },
+      { "handle": "home-sculptural-objects", "name": "Sculptural objects", "note": "Small monuments for a shelf" },
+      { "handle": "home-accessories", "name": "Home accessories", "note": "Trays, hooks, clocks, and details" }
+    ]
+  },
+  {
+    "handle": "art",
+    "name": "Art & Collectibles",
+    "tagline": "Small editions. Lasting presence.",
+    "description": "Figures, replicas, miniatures, and commissions — precise down to the layer and considered from every angle.",
+    "rank": 2,
+    "subcategories": [
+      { "handle": "art-figurines-characters", "name": "Figurines & characters", "note": "Original sculpts and character studies" },
+      { "handle": "art-miniatures", "name": "Miniatures", "note": "Small worlds, finely observed" },
+      { "handle": "art-museum-replicas", "name": "Museum replicas", "note": "Reconsidered fragments and forms" },
+      { "handle": "art-wall-reliefs", "name": "Wall reliefs", "note": "Sculpture for flat surfaces" },
+      { "handle": "art-sculptural-editions", "name": "Sculptural editions", "note": "Numbered, dated, and documented" },
+      { "handle": "art-commissioned-artworks", "name": "Commissioned artworks", "note": "One-off pieces made with artists" }
+    ]
+  },
+  {
+    "handle": "jewellery",
+    "name": "Jewellery & Wear",
+    "tagline": "Wearable, personal, precise.",
+    "description": "Rings, pendants, and accessories printed in castable resin or finished metal. Small objects, closely observed.",
+    "rank": 3,
+    "subcategories": [
+      { "handle": "jewellery-rings", "name": "Rings", "note": "Sculptural bands and signets" },
+      { "handle": "jewellery-pendants", "name": "Pendants", "note": "Small gestures, close to the heart" },
+      { "handle": "jewellery-earrings-cuffs", "name": "Earrings & cuffs", "note": "Architectural forms in lightness" },
+      { "handle": "jewellery-cufflinks-pins", "name": "Cufflinks & pins", "note": "Quiet details for formal days" },
+      { "handle": "jewellery-eyewear-frames", "name": "Eyewear frames", "note": "Made to your measurements" },
+      { "handle": "jewellery-cosplay-props", "name": "Cosplay & props", "note": "Armour, weapons, and character work" }
+    ]
+  },
+  {
+    "handle": "tech",
+    "name": "Tech & Hobby",
+    "tagline": "Better gear, made for you.",
+    "description": "Desk systems, mounts, drone parts, and the small improvements that make a workspace feel considered.",
+    "rank": 4,
+    "subcategories": [
+      { "handle": "tech-desk-organisation", "name": "Desk organisation", "note": "Trays, wells, and quiet order" },
+      { "handle": "tech-phone-tablet-stands", "name": "Phone & tablet stands", "note": "Weighted, considered viewing angles" },
+      { "handle": "tech-drone-rc-parts", "name": "Drone & RC parts", "note": "Stiff, light, and replaceable" },
+      { "handle": "tech-robotics", "name": "Robotics", "note": "Brackets, chassis, and custom mounts" },
+      { "handle": "tech-model-kits-trains", "name": "Model kits & trains", "note": "Parts for worlds in miniature" },
+      { "handle": "tech-replacement-parts", "name": "Replacement parts", "note": "The thing you cannot buy anymore" }
+    ]
+  },
+  {
+    "handle": "toys",
+    "name": "Toys & Games",
+    "tagline": "Play, finely made.",
+    "description": "Tabletop armies, terrain, dice towers, educational models, and toys designed to be handled for years.",
+    "rank": 5,
+    "subcategories": [
+      { "handle": "toys-tabletop-miniatures", "name": "Tabletop miniatures", "note": "Heroes, monsters, and NPCs" },
+      { "handle": "toys-terrain-scenery", "name": "Terrain & scenery", "note": "Ruins, trees, and modular worlds" },
+      { "handle": "toys-dice-towers", "name": "Dice towers", "note": "A little ceremony for every roll" },
+      { "handle": "toys-educational-toys", "name": "Educational toys", "note": "Models that reward curiosity" },
+      { "handle": "toys-puzzles", "name": "Puzzles", "note": "Objects with a hidden order" },
+      { "handle": "toys-board-game-inserts", "name": "Board-game inserts", "note": "A place for every piece" }
+    ]
+  },
+  {
+    "handle": "food",
+    "name": "Food & Events",
+    "tagline": "Occasions, made tangible.",
+    "description": "Celebration pieces, moulds, and favours, printed in food-safe materials. For weddings, tables, and good days.",
+    "rank": 6,
+    "subcategories": [
+      { "handle": "food-cake-toppers", "name": "Cake toppers", "note": "The first photograph of the day" },
+      { "handle": "food-cookie-cutters", "name": "Cookie cutters", "note": "Custom shapes, clean edges" },
+      { "handle": "food-chocolate-moulds", "name": "Chocolate moulds", "note": "Food-safe, finely detailed" },
+      { "handle": "food-party-favours", "name": "Party favours", "note": "Small gifts for long tables" },
+      { "handle": "food-table-centrepieces", "name": "Table centrepieces", "note": "Architecture for a celebration" },
+      { "handle": "food-seasonal-decor", "name": "Seasonal décor", "note": "Objects for returning rituals" }
+    ]
+  },
+  {
+    "handle": "prototypes",
+    "name": "Prototypes & Industry",
+    "tagline": "From sketch to working part.",
+    "description": "Rapid prototypes, functional components, enclosures, jigs, and small production runs — with engineering support from the first file.",
+    "rank": 7,
+    "subcategories": [
+      { "handle": "prototypes-rapid-prototyping", "name": "Rapid prototyping", "note": "From CAD to object in days" },
+      { "handle": "prototypes-functional-parts", "name": "Functional parts", "note": "Engineered for real loads" },
+      { "handle": "prototypes-electronics-enclosures", "name": "Electronics enclosures", "note": "Custom fit, clean details" },
+      { "handle": "prototypes-jigs-fixtures", "name": "Jigs & fixtures", "note": "Repeatable tools for the bench" },
+      { "handle": "prototypes-small-batch", "name": "Small-batch production", "note": "1 to 5,000, quality assured" },
+      { "handle": "prototypes-architectural-models", "name": "Architectural models", "note": "Scale, section, and context" }
+    ]
+  },
+  {
+    "handle": "health",
+    "name": "Health & Science",
+    "tagline": "Models that clarify.",
+    "description": "Anatomical studies, dental and lab aids, assistive devices, and scientific models, made with dimensional care.",
+    "rank": 8,
+    "subcategories": [
+      { "handle": "health-anatomical-models", "name": "Anatomical models", "note": "Study, explain, and teach" },
+      { "handle": "health-dental-models", "name": "Dental models", "note": "Reference arches and guides" },
+      { "handle": "health-laboratory-aids", "name": "Laboratory aids", "note": "Custom holders and fixtures" },
+      { "handle": "health-assistive-devices", "name": "Assistive devices", "note": "Made around a person" },
+      { "handle": "health-orthotic-studies", "name": "Orthotic studies", "note": "Form studies with clinical partners" },
+      { "handle": "health-research-prototypes", "name": "Research prototypes", "note": "Quick iterations for the lab" }
+    ]
+  },
+  {
+    "handle": "automotive",
+    "name": "Automotive & Repair",
+    "tagline": "The part that no longer exists.",
+    "description": "Interior trim, knobs, clips, brackets, and restoration pieces — reverse-engineered, printed, and finished to fit.",
+    "rank": 9,
+    "subcategories": [
+      { "handle": "automotive-interior-trim", "name": "Interior trim", "note": "Clips, bezels, and small covers" },
+      { "handle": "automotive-replacement-knobs", "name": "Replacement knobs", "note": "Tactile, weighted, yours" },
+      { "handle": "automotive-brackets-mounts", "name": "Brackets & mounts", "note": "Holders for cameras and radios" },
+      { "handle": "automotive-custom-adaptors", "name": "Custom adaptors", "note": "Two things that should fit" },
+      { "handle": "automotive-scale-models", "name": "Scale models", "note": "Cars, built one layer at a time" },
+      { "handle": "automotive-restoration-parts", "name": "Restoration parts", "note": "Keeping the original on the road" }
+    ]
+  }
+]

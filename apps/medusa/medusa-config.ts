@@ -3,6 +3,7 @@ import { defineConfig, loadEnv } from "@medusajs/framework/utils"
 import {
   assertRuntimeEnv,
   isMedusaBuildCommand,
+  isPlaceholderValue,
   readRuntimeEnv,
 } from "./src/lib/env"
 
@@ -29,13 +30,27 @@ if (env.REDIS_URL) {
   })
 }
 
-if (env.STRIPE_API_KEY && env.STRIPE_WEBHOOK_SECRET) {
+// Never register Stripe with the placeholder values from `.env.example`.
+if (
+  env.STRIPE_API_KEY &&
+  env.STRIPE_WEBHOOK_SECRET &&
+  !isPlaceholderValue(env.STRIPE_API_KEY) &&
+  !isPlaceholderValue(env.STRIPE_WEBHOOK_SECRET)
+) {
   modules.push({
-    resolve: "@medusajs/medusa/payment-stripe",
+    resolve: "@medusajs/medusa/payment",
     options: {
-      apiKey: env.STRIPE_API_KEY,
-      webhookSecret: env.STRIPE_WEBHOOK_SECRET,
-      capture: true,
+      providers: [
+        {
+          resolve: "@medusajs/medusa/payment-stripe",
+          id: "stripe",
+          options: {
+            apiKey: env.STRIPE_API_KEY,
+            webhookSecret: env.STRIPE_WEBHOOK_SECRET,
+            capture: true,
+          },
+        },
+      ],
     },
   })
 }
@@ -48,14 +63,22 @@ if (
   env.R2_PUBLIC_URL
 ) {
   modules.push({
-    resolve: "@medusajs/medusa/file-s3",
+    resolve: "@medusajs/medusa/file",
     options: {
-      file_url: env.R2_PUBLIC_URL,
-      access_key_id: env.R2_PUBLIC_ACCESS_KEY_ID,
-      secret_access_key: env.R2_PUBLIC_SECRET_ACCESS_KEY,
-      region: "auto",
-      bucket: env.R2_PUBLIC_BUCKET,
-      endpoint: env.R2_PUBLIC_ENDPOINT,
+      providers: [
+        {
+          resolve: "@medusajs/medusa/file-s3",
+          id: "s3",
+          options: {
+            file_url: env.R2_PUBLIC_URL,
+            access_key_id: env.R2_PUBLIC_ACCESS_KEY_ID,
+            secret_access_key: env.R2_PUBLIC_SECRET_ACCESS_KEY,
+            region: "auto",
+            bucket: env.R2_PUBLIC_BUCKET,
+            endpoint: env.R2_PUBLIC_ENDPOINT,
+          },
+        },
+      ],
     },
   })
 }

@@ -75,6 +75,9 @@ importers:
 
   apps/medusa:
     dependencies:
+      '@forma/contracts':
+        specifier: workspace:*
+        version: link:../../packages/contracts
       '@medusajs/admin-sdk':
         specifier: 2.22.1
         version: 2.22.1

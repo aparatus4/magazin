@@ -5,7 +5,8 @@ Medusa v2 backend for FORMA. Pinned to Medusa `2.22.1`.
 ## Local setup
 
 1. Copy `.env.example` to `.env` and fill in local values.
-2. Start PostgreSQL and Redis.
+2. Create the managed Neon Postgres and Upstash Redis services described in
+   `docs/managed-services.md` (or run local equivalents).
 3. From the repository root:
 
    ```powershell
@@ -26,7 +27,21 @@ pnpm --filter @forma/medusa typecheck
 pnpm --filter @forma/medusa exec medusa db:migrate
 pnpm --filter @forma/medusa exec medusa db:generate <module-name>
 pnpm --filter @forma/medusa seed
+pnpm --filter @forma/medusa verify:catalog
+pnpm --filter @forma/medusa verify:payments
 ```
+
+`seed` is idempotent: it looks up sales channels, regions, tax regions, stock
+locations, shipping options, categories, collections, products, and inventory
+levels by stable natural keys before creating anything. Existing products are
+left untouched, so reset the development database when the catalogue shape
+changes. The seed writes **provisional development prices only**; see the
+"Product price migration to RON" entry in the `PLAN.md` decision log.
+
+`verify:catalog` checks the seeded counts, RON prices, tax-inclusive
+preferences, 21% VAT, 25 RON shipping, inventory levels, `ro`/`en` locales,
+store defaults, and the publishable-key link. `verify:payments` fails until real
+Stripe test credentials replace the `.env.example` placeholders.
 
 ## Environment rules
 
@@ -40,8 +55,12 @@ pnpm --filter @forma/medusa seed
 - `ADMIN_PATH` defaults to `/app`. Set `ADMIN_BACKEND_URL` only when the Admin
   SPA is hosted separately from the API.
 - Stripe, the Redis workflow engine, and the public R2 file provider are
-  registered only when their values are present. Missing values in development
-  fall back to Medusa's in-memory/local defaults.
+  registered only when their values are present and are not `.env.example`
+  placeholders. Missing values in development fall back to Medusa's
+  in-memory/local defaults.
+- `PUBLIC_ASSET_BASE_URL` is the public origin used to build catalogue image
+  URLs during seeding. It defaults to `http://localhost:3000`; production must
+  use the public R2/custom-domain origin.
 - Public catalogue assets and private customer uploads use separate R2 buckets
   and credentials. Never put a private upload in the public bucket.
 - Do not commit `.env`, keys, customer photographs, or uploaded files.
@@ -52,7 +71,7 @@ problem instead of a partial boot.
 
 ## Scope
 
-This is a Phase 1 scaffold. Catalogue seeding, the standalone Admin build, and
-the remaining Stripe/R2 flows are implemented in Phase 1; commissions, quotes,
-and private uploads follow in later phases. See `PLAN.md` for the authoritative
-task list.
+This is a Phase 1 scaffold. Catalogue seeding and verification are in place;
+the standalone Admin build and the remaining Stripe/R2 flows are still being
+completed in Phase 1. Commissions, quotes, and private uploads follow in later
+phases. See `PLAN.md` for the authoritative task list.

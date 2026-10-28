@@ -3,6 +3,10 @@ import { z } from "zod"
 const PLACEHOLDER_PATTERN =
   /(replace[_-]?me|replace[_-]?with|changeme|supersecret|example\.(com|org|net))/i
 
+export function isPlaceholderValue(value: string | undefined): boolean {
+  return typeof value === "string" && PLACEHOLDER_PATTERN.test(value)
+}
+
 const isOrigin = (value: string) => {
   if (!value || value === "*" || value === "null") return false
 
@@ -52,6 +56,9 @@ export const RuntimeEnvSchema = z
 
     ADMIN_PATH: z.string().trim().startsWith("/").optional(),
     ADMIN_BACKEND_URL: optionalUrl,
+
+    // Public origin for catalogue renders used by the seed script.
+    PUBLIC_ASSET_BASE_URL: optionalUrl,
 
     STRIPE_API_KEY: optionalString,
     STRIPE_WEBHOOK_SECRET: optionalString,
