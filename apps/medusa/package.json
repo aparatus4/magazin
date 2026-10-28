@@ -10,6 +10,7 @@
     "seed": "medusa exec ./src/scripts/seed.ts",
     "verify:catalog": "medusa exec ./src/scripts/verify-catalog.ts",
     "verify:payments": "medusa exec ./src/scripts/verify-payment-provider.ts",
+    "verify:payment-truth": "medusa exec ./src/scripts/verify-payment-truth.ts",
     "start": "medusa start",
     "dev": "medusa develop",
     "typecheck": "tsc --noEmit",

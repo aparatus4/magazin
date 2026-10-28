@@ -29,6 +29,7 @@ pnpm --filter @forma/medusa exec medusa db:generate <module-name>
 pnpm --filter @forma/medusa seed
 pnpm --filter @forma/medusa verify:catalog
 pnpm --filter @forma/medusa verify:payments
+pnpm --filter @forma/medusa verify:payment-truth
 ```
 
 `seed` is idempotent: it looks up sales channels, regions, tax regions, stock
@@ -42,6 +43,23 @@ changes. The seed writes **provisional development prices only**; see the
 preferences, 21% VAT, 25 RON shipping, inventory levels, `ro`/`en` locales,
 store defaults, and the publishable-key link. `verify:payments` fails until real
 Stripe test credentials replace the `.env.example` placeholders.
+
+`verify:payment-truth` reads the payment, capture, and refund records through
+Medusa's Query API and enforces the capture gate. Set `ORDER_ID` (or
+`PAYMENT_COLLECTION_ID`), and optionally `EXPECT_PROVIDER` and
+`EXPECT_CAPTURED_AMOUNT` in minor units:
+
+```powershell
+$env:ORDER_ID = "order_..."
+$env:EXPECT_PROVIDER = "pp_stripe_stripe"
+$env:EXPECT_CAPTURED_AMOUNT = "42000"
+pnpm --filter @forma/medusa verify:payment-truth
+```
+
+It requires exactly one payment, one full-amount capture, and no refunds, and
+it matches the collection totals against the individual captures and refunds.
+It never calls the provider and never reads provider metadata, so it works
+whether or not a `payment.captured` event was delivered.
 
 ## Environment rules
 
