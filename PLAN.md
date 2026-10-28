@@ -6,7 +6,7 @@
 >
 > **Status:** Static concept site complete. Medusa v2 architecture corrections, implementation-ready Phase 1–4 specifications, and adopted security hardening are documented; implementation not started.
 >
-> **Next action:** Create the baseline tag after the Git hygiene cleanup, review the remaining decisions, resolve the mobile-menu baseline timeout, then complete Phase 0 workspace/runtime/hosting setup.
+> **Next action:** Complete Phase 0 workspace/runtime/hosting setup: create the `migration/medusa` branch, pin Node/pnpm, create the pnpm workspace and `packages/contracts`, move the Vite app to `legacy/`, scaffold the apps, add env examples/README/CI, and create the managed-service projects.
 
 ---
 
@@ -34,11 +34,11 @@
 | Field | Value |
 | --- | --- |
 | Current phase | **Phase 0 — Foundation** |
-| State | Section 3 decisions recorded 2026-10-28: truthful 14-product seed designed for 40–60, Payload CMS, Romania-only launch with RON checkout and EUR indicative display, Romanian-primary/English-secondary routing, VAT-inclusive pricing, EU 14-day stock returns, custom reviews plus a Google band, managed infrastructure, no wholesale. Baseline tag `baseline-static-site` created. Implementation not started. |
-| Next action | Resolve the mobile-menu baseline timeout and rerun the 13-check suite, then complete Phase 0 workspace/runtime/hosting setup: Node/pnpm pin, `migration/medusa` branch, pnpm workspace, `packages/contracts`, app scaffolds, `.env.example`, CI, and accounts/projects. |
+| State | Section 3 decisions recorded 2026-10-28: truthful 14-product seed designed for 40–60, Payload CMS, Romania-only launch with RON checkout and EUR indicative display, Romanian-primary/English-secondary routing, VAT-inclusive pricing, EU 14-day stock returns, custom reviews plus a Google band, managed infrastructure, no wholesale. Baseline tag `baseline-static-site` created. The mobile-menu Playwright check is stabilized (13/13 on six consecutive runs). Implementation not started. |
+| Next action | Complete Phase 0 workspace/runtime/hosting setup: create the `migration/medusa` branch, pin Node/pnpm, create the pnpm workspace and `packages/contracts`, move the Vite app to `legacy/`, scaffold the apps, add env examples/README/CI, and create the managed-service projects. |
 | Blocking decisions | Phase 0: portrait pricing (deferred; config-driven, no published numbers), product price migration to RON, legal entity/address/contact/domain, and managed-service accounts. Before the first Commission DML migration: staff-role policy. Before enabling cancellation/refund commands: cancellation/refund policy. Before Phase 3 release: private-asset delivery, retention periods, and hard upload-size gateway. |
 | Current app | Vite + React concept storefront at `http://127.0.0.1:5173` |
-| Current verification | `npm run build` passes; `node scripts/functional-test.mjs` passes 12/13 on two runs; mobile-menu category expansion times out. |
+| Current verification | `npm run build` passes; `node scripts/functional-test.mjs` passes 13/13 (six consecutive runs on 2026-10-28). |
 | Workspace | `E:\dev\rob\maga` (Windows, PowerShell; current Node 20.10 must be upgraded to the pinned Medusa-supported runtime in Phase 0) |
 
 ### 0.2 Resume protocol
@@ -183,7 +183,7 @@ Product principles:
 - Mobile homepage height: roughly **18,500 px at 390 px wide** (about 22 screens).
 - Production JS: **920.13 kB** (252.11 kB gzip); CSS: **115.52 kB** (21.54 kB gzip).
 - Images: 20 files, about **0.9 MB total**, average 44 kB.
-- Functional suite: **12/13 on two runs (2026-10-28)**; mobile-menu category expansion timed out. Track the regression in Phase 0.
+- Functional suite: **13/13 (six consecutive runs, 2026-10-28)**. The mobile-menu check now waits for hydration after closing the desktop page, removing the software-rendered 3D contention that caused intermittent timeouts.
 - Build: passing.
 
 ### 1.5 Known constraints and quirks
@@ -2032,7 +2032,7 @@ AR, trade/wholesale, multi-currency, loyalty, and advanced personalization can f
 - [ ] Create pnpm workspace: `apps/storefront`, `apps/medusa`, `apps/cms`, `apps/private-media-worker`, `packages/contracts`, and `legacy/`.
 - [ ] Create `packages/contracts` as workspace package `@forma/contracts`; build strict TypeScript/Zod contracts to `dist/` and export `./product`, `./commission`, `./quote`, and `./mesh-analysis` for both apps.
 - [ ] Document the RON/EUR display model and `/ro` + `/en` routing in the root README and app env examples; never let EUR display values reach checkout.
-- [ ] Resolve the current mobile-menu Playwright timeout (`node scripts/functional-test.mjs`: 12/13 on two runs), rerun the 13-check baseline, and update these metrics before moving the Vite app to `legacy/`.
+- [x] Resolve the current mobile-menu Playwright timeout (`node scripts/functional-test.mjs`: 12/13 on two runs), rerun the 13-check baseline, and update these metrics before moving the Vite app to `legacy/`. Closed the desktop page before the mobile check and wait for header hydration; 13/13 on six consecutive runs.
 - [ ] Move the current Vite app to `legacy/` (or preserve it in git history and keep a reference copy).
 - [ ] Scaffold Medusa v2, Next.js storefront, and Payload CMS apps; pin exact versions; document them.
 - [ ] Add `.env.example` for each app and a root README.
@@ -2729,6 +2729,13 @@ export const QuoteEvent = model.define("quote_event", {
 ---
 
 ## 13. Session log
+### 2026-10-28 — Phase 0 mobile-menu baseline stabilized
+
+- Reproduced the intermittent mobile-menu failure: `getByRole('button', { name: 'Open menu' })` timed out because the mobile page had not hydrated while the desktop page's software-rendered 3D hero was still running.
+- Updated `scripts/functional-test.mjs` to close the desktop page before opening the mobile page and to wait for `.header-action--menu` visibility instead of a fixed delay. The mobile menu itself needed no source change.
+- Verified `node scripts/functional-test.mjs` passes 13/13 on six consecutive runs. Updated Section 0.1, Section 1.4, and the Phase 0 checklist.
+- Next: create `migration/medusa`, pin the runtime, and build the pnpm workspace.
+
 ### 2026-10-28 — Phase 0 decisions, baseline tag
 
 - Created annotated tag `baseline-static-site` on the clean `main` tree after verifying `npm run build` (920.13 kB JS / 252.11 kB gzip, CSS 115.52 kB / 21.54 kB gzip).

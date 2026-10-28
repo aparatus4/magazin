@@ -173,10 +173,15 @@ await check('newsletter validates and confirms subscription', async () => {
 })
 
 /* mobile menu expansion */
+// Close the desktop page first: its software-rendered 3D hero otherwise starves
+// the mobile renderer and intermittently delays hydration past the click timeout.
+await page.close()
+
 const mobile = await browser.newPage({ viewport: { width: 390, height: 844 }, deviceScaleFactor: 1 })
 mobile.on('pageerror', (error) => errors.push(error.message))
 await mobile.goto('http://127.0.0.1:5173', { waitUntil: 'domcontentloaded', timeout: 60000 })
-await mobile.waitForTimeout(1800)
+await mobile.locator('.header-action--menu').waitFor({ state: 'visible', timeout: 60000 })
+await mobile.waitForTimeout(300)
 
 await check('mobile menu expands a category and links into the collection', async () => {
   await mobile.getByRole('button', { name: 'Open menu' }).click()
