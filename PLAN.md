@@ -35,7 +35,7 @@
 | --- | --- |
 | Current phase | **Phase 0 — Foundation** |
 | State | Workspace scaffolded and verified on 2026-10-28: Node 24.22.2 + pnpm 11.25.0 pinned; pnpm workspace with `apps/storefront` (Next.js 16.4.3), `apps/medusa` (Medusa 2.22.1), `apps/cms` (Payload 3.92.1), `apps/private-media-worker` placeholder, `packages/contracts`, and the preserved Vite app in `legacy/`. Baseline CI, the visual-baseline capture script, `pnpm build`, `pnpm typecheck`, `pnpm lint`, and the 13-check legacy Playwright suite all pass. Phase 0 decisions remain recorded; portrait/product pricing and legal details stay open. |
-| Next action | Create the managed-service projects (user-assisted: Neon, Upstash, R2, Stripe test, Resend, Meilisearch, Vercel, Railway/Fly), then extend CI with `scripts/security/check-invariants.sh` and migration checks. Start Phase 1 (Medusa foundation) once accounts exist. |
+| Next action | Create the managed-service projects following `docs/managed-services.md` (user-assisted: Neon, Upstash, Stripe test, then R2/Resend/Meilisearch/Vercel/Railway). Then extend CI with `scripts/security/check-invariants.sh` and migration checks, and start Phase 1 (Medusa foundation). |
 | Blocking decisions | Phase 0: portrait pricing (deferred; config-driven, no published numbers), product price migration to RON, legal entity/address/contact/domain, and managed-service accounts. Before the first Commission DML migration: staff-role policy. Before enabling cancellation/refund commands: cancellation/refund policy. Before Phase 3 release: private-asset delivery, retention periods, and hard upload-size gateway. |
 | Current app | Legacy Vite + React concept storefront in `legacy/` at `http://127.0.0.1:5173`; new apps are scaffolds, not runnable storefronts yet. |
 | Current verification | `pnpm build` passes (contracts, storefront, CMS, Medusa backend + Admin, legacy); `pnpm typecheck` and `pnpm lint` pass; `pnpm test:legacy` passes 13/13 on 2026-10-28. |
@@ -2039,7 +2039,7 @@ AR, trade/wholesale, multi-currency, loyalty, and advanced personalization can f
 - [x] Add `.env.example` for each app and a root README.
 - [x] Add baseline CI (`.github/workflows/ci.yml`): pnpm install, lint, build, typecheck, legacy dev server, and the 13-check functional suite on GitHub Actions.
 - [ ] Extend CI with `scripts/security/check-invariants.sh`, the security invariants, and migration drift checks once those scripts exist (Section 8.7.5).
-- [ ] Create accounts/projects (user-assisted): Neon (Medusa + Payload), Upstash, R2, Stripe test, Resend, Meilisearch, Vercel, Railway/Fly.
+- [ ] Create accounts/projects (user-assisted): Neon (Medusa + Payload), Upstash, R2, Stripe test, Resend, Meilisearch, Vercel, Railway/Fly. Checklist: `docs/managed-services.md`.
 - [x] Document the visual baseline and screenshot references (`docs/visual-baseline.md`, `scripts/capture-baseline.mjs`).
 - [x] Update the current-focus block.
 
@@ -2737,6 +2737,7 @@ export const QuoteEvent = model.define("quote_event", {
 - Added `.github/workflows/ci.yml` for `main` and `migration/medusa`: pnpm install, lint, build, typecheck, then the legacy dev server and 13-check functional suite. Security invariants and migration drift checks remain a follow-up once their scripts exist.
 - Made the browser-dependent scripts cross-platform with `scripts/browser-path.mjs` (`CHROME_PATH` override plus Windows/Linux/macOS candidates), so the functional suite can run on GitHub Actions and locally.
 - Added `scripts/capture-baseline.mjs` and `docs/visual-baseline.md`; captures desktop (1440×1000) and mobile (390×844) screenshots of every home section into the Git-ignored `shots/baseline/`. Verified the WebGL hero renders under headless SwiftShader.
+- Added `docs/managed-services.md` with the project naming, EU regions, variable ownership, and a Phase 1-first checklist for Neon, Upstash, and Stripe test mode; R2, Resend, Meilisearch, and hosting follow in later phases.
 - Verified `pnpm build`, `pnpm typecheck`, `pnpm lint`, and `pnpm test:legacy` (13/13) again. Remaining Phase 0 work: managed-service accounts (user-assisted) and the security/migration CI extension.
 
 ### 2026-10-28 — Phase 0 workspace scaffold
