@@ -1,6 +1,8 @@
 import { chromium } from 'playwright-core'
 import assert from 'node:assert/strict'
 import fs from 'node:fs'
+import os from 'node:os'
+import path from 'node:path'
 
 import { resolveChromePath } from './browser-path.mjs'
 
@@ -46,6 +48,10 @@ await page.goto('http://127.0.0.1:5173', { waitUntil: 'networkidle', timeout: 60
 await page.waitForTimeout(1800)
 
 await check('hero has three slides and portrait active', async () => {
+  // Autoplay may already have advanced while the page was loading on a slow
+  // runner, so reset to the first slide before asserting the portrait state.
+  await page.getByRole('tab', { name: /Go to slide 1:/ }).click()
+  await page.waitForTimeout(300)
   assert.equal(await page.locator('.hero__dot').count(), 3)
   assert.equal(await page.locator('.hero__dot').first().getAttribute('aria-selected'), 'true')
   assert.ok((await page.locator('.hero').getAttribute('class'))?.includes('hero--portrait'))
@@ -149,7 +155,7 @@ await check('project modal validates and submits a brief', async () => {
   await page.getByPlaceholder(/A portrait for my father/).fill('A 1:100 model of a courtyard studio.')
   await page.locator('.project-field select').selectOption('Within two weeks')
 
-  const briefPath = 'shots/test-brief.txt'
+  const briefPath = path.join(os.tmpdir(), 'test-brief.txt')
   fs.writeFileSync(briefPath, 'test reference')
   await page.locator('.project-modal input[type=file]').setInputFiles(briefPath)
   await page.getByRole('button', { name: 'Send the brief' }).click()
@@ -207,7 +213,7 @@ await check('mobile menu expands a category and links into the collection', asyn
 })
 
 await browser.close()
-fs.rmSync('shots/test-brief.txt', { force: true })
+fs.rmSync(path.join(os.tmpdir(), 'test-brief.txt'), { force: true })
 
 if (errors.length > 0) {
   console.log(`\nBrowser errors (${errors.length}):`)
