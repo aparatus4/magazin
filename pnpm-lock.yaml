@@ -149,6 +149,15 @@ importers:
         specifier: 1.0.0-pre.53
         version: 1.0.0-pre.53
 
+  apps/private-media-worker:
+    devDependencies:
+      '@types/node':
+        specifier: 24.10.1
+        version: 24.10.1
+      typescript:
+        specifier: 5.9.3
+        version: 5.9.3
+
   apps/storefront:
     dependencies:
       next:

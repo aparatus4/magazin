@@ -34,8 +34,8 @@
 | Field | Value |
 | --- | --- |
 | Current phase | **Phase 0 — Foundation** |
-| State | Workspace scaffolded and verified on 2026-10-28: Node 24.22.2 + pnpm 11.25.0 pinned; pnpm workspace with `apps/storefront` (Next.js 16.4.3), `apps/medusa` (Medusa 2.22.1), `apps/cms` (Payload 3.92.1), `packages/contracts`, and the preserved Vite app in `legacy/`. `pnpm build`, `pnpm typecheck`, `pnpm lint`, and the 13-check legacy Playwright suite pass. Phase 0 decisions remain recorded; portrait/product pricing and legal details stay open. |
-| Next action | Add CI (lint/typecheck/build/legacy tests, then security invariants when `scripts/security/check-invariants.sh` exists), add the `apps/private-media-worker` Phase 0 placeholder, document the visual baseline, and create the managed-service projects (user-assisted). Then start Phase 1 (Medusa foundation). |
+| State | Workspace scaffolded and verified on 2026-10-28: Node 24.22.2 + pnpm 11.25.0 pinned; pnpm workspace with `apps/storefront` (Next.js 16.4.3), `apps/medusa` (Medusa 2.22.1), `apps/cms` (Payload 3.92.1), `apps/private-media-worker` placeholder, `packages/contracts`, and the preserved Vite app in `legacy/`. Baseline CI, the visual-baseline capture script, `pnpm build`, `pnpm typecheck`, `pnpm lint`, and the 13-check legacy Playwright suite all pass. Phase 0 decisions remain recorded; portrait/product pricing and legal details stay open. |
+| Next action | Create the managed-service projects (user-assisted: Neon, Upstash, R2, Stripe test, Resend, Meilisearch, Vercel, Railway/Fly), then extend CI with `scripts/security/check-invariants.sh` and migration checks. Start Phase 1 (Medusa foundation) once accounts exist. |
 | Blocking decisions | Phase 0: portrait pricing (deferred; config-driven, no published numbers), product price migration to RON, legal entity/address/contact/domain, and managed-service accounts. Before the first Commission DML migration: staff-role policy. Before enabling cancellation/refund commands: cancellation/refund policy. Before Phase 3 release: private-asset delivery, retention periods, and hard upload-size gateway. |
 | Current app | Legacy Vite + React concept storefront in `legacy/` at `http://127.0.0.1:5173`; new apps are scaffolds, not runnable storefronts yet. |
 | Current verification | `pnpm build` passes (contracts, storefront, CMS, Medusa backend + Admin, legacy); `pnpm typecheck` and `pnpm lint` pass; `pnpm test:legacy` passes 13/13 on 2026-10-28. |
@@ -1990,7 +1990,7 @@ Section 11 is the sole source of truth for decision status, owner, and gate. Res
 
 | Phase | Name | Status | Est. effort |
 | --- | --- | --- | --- |
-| 0 | Foundation & decisions | **In progress — workspace scaffolded and verified; CI, worker placeholder, visual baseline, and managed-service accounts next** | 0.5–1 day |
+| 0 | Foundation & decisions | **In progress — scaffold, baseline CI, worker placeholder, and visual baseline done; managed-service accounts and security CI next** | 0.5–1 day |
 | 1 | Medusa foundation | Not started | 3–5 days |
 | 2 | Next.js storefront spine | Not started | 5–8 days |
 | 3 | Portrait Studio flow | Not started | 5–8 days |
@@ -2030,16 +2030,17 @@ AR, trade/wholesale, multi-currency, loyalty, and advanced personalization can f
 - [x] Create a `migration/medusa` branch for the rebuild; merge in phase-sized increments.
 - [x] Pin the workspace runtime: Node 24.22.2 (Nodist + `.node-version`), pnpm 11.25.0 (`packageManager`), and record the versions in the root README and lockfile.
 - [x] Create pnpm workspace: `apps/storefront`, `apps/medusa`, `apps/cms`, `packages/contracts`, and `legacy/`.
-- [ ] Add the `apps/private-media-worker` Phase 0 placeholder package; the functional worker belongs to Phase 3.
+- [x] Add the `apps/private-media-worker` Phase 0 placeholder package; the functional worker belongs to Phase 3.
 - [x] Create `packages/contracts` as workspace package `@forma/contracts`; build strict TypeScript/Zod contracts to `dist/` and export `./product`, `./commission`, `./quote`, and `./mesh-analysis` for both apps.
 - [x] Document the RON/EUR display model and `/ro` + `/en` routing in the root README and app env examples; never let EUR display values reach checkout.
 - [x] Resolve the current mobile-menu Playwright timeout (`node scripts/functional-test.mjs`: 12/13 on two runs), rerun the 13-check baseline, and update these metrics before moving the Vite app to `legacy/`. Closed the desktop page before the mobile check and wait for header hydration; 13/13 on six consecutive runs.
 - [x] Move the current Vite app to `legacy/` (or preserve it in git history and keep a reference copy).
 - [x] Scaffold Medusa v2, Next.js storefront, and Payload CMS apps; pin exact versions; document them.
 - [x] Add `.env.example` for each app and a root README.
-- [ ] Add CI: install pnpm and ripgrep before running `scripts/security/check-invariants.sh`; run lint, typecheck, build, tests, security invariants, and migration checks.
+- [x] Add baseline CI (`.github/workflows/ci.yml`): pnpm install, lint, build, typecheck, legacy dev server, and the 13-check functional suite on GitHub Actions.
+- [ ] Extend CI with `scripts/security/check-invariants.sh`, the security invariants, and migration drift checks once those scripts exist (Section 8.7.5).
 - [ ] Create accounts/projects (user-assisted): Neon (Medusa + Payload), Upstash, R2, Stripe test, Resend, Meilisearch, Vercel, Railway/Fly.
-- [ ] Document the visual baseline and screenshot references.
+- [x] Document the visual baseline and screenshot references (`docs/visual-baseline.md`, `scripts/capture-baseline.mjs`).
 - [x] Update the current-focus block.
 
 **Done when:** the workspace installs and builds; the legacy site is recoverable; apps start; env docs exist; CI is green; decisions are recorded.
@@ -2730,6 +2731,14 @@ export const QuoteEvent = model.define("quote_event", {
 ---
 
 ## 13. Session log
+### 2026-10-28 — Phase 0 CI, worker placeholder, visual baseline
+
+- Added `apps/private-media-worker` as a buildable Phase 0 placeholder (`@forma/private-media-worker`) with no upload, scan, or parser logic; the functional worker remains a Phase 3 deliverable behind the Section 8.7 sandbox contracts.
+- Added `.github/workflows/ci.yml` for `main` and `migration/medusa`: pnpm install, lint, build, typecheck, then the legacy dev server and 13-check functional suite. Security invariants and migration drift checks remain a follow-up once their scripts exist.
+- Made the browser-dependent scripts cross-platform with `scripts/browser-path.mjs` (`CHROME_PATH` override plus Windows/Linux/macOS candidates), so the functional suite can run on GitHub Actions and locally.
+- Added `scripts/capture-baseline.mjs` and `docs/visual-baseline.md`; captures desktop (1440×1000) and mobile (390×844) screenshots of every home section into the Git-ignored `shots/baseline/`. Verified the WebGL hero renders under headless SwiftShader.
+- Verified `pnpm build`, `pnpm typecheck`, `pnpm lint`, and `pnpm test:legacy` (13/13) again. Remaining Phase 0 work: managed-service accounts (user-assisted) and the security/migration CI extension.
+
 ### 2026-10-28 — Phase 0 workspace scaffold
 
 - Pinned Node 24.22.2 (Nodist + `.node-version`) and pnpm 11.25.0; created the root pnpm workspace (`package.json`, `pnpm-workspace.yaml`, `tsconfig.base.json`, `README.md`) and moved the Vite app to `legacy/` with `git mv`.

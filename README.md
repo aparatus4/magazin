@@ -39,7 +39,7 @@ for other version managers.
 apps/storefront          Next.js App Router storefront (planned)
 apps/medusa              Medusa v2 backend and Admin SPA (planned)
 apps/cms                 Payload 3 CMS on Neon Postgres (planned)
-apps/private-media-worker Private upload/scanning worker (planned)
+apps/private-media-worker Phase 0 placeholder; functional worker in Phase 3
 packages/contracts       Shared strict Zod contracts (@forma/contracts)
 legacy/                  Preserved Vite concept storefront
 scripts/                 Repository-level functional and security checks
@@ -52,13 +52,16 @@ pnpm install
 pnpm dev:legacy        # http://127.0.0.1:5173
 pnpm build:legacy
 pnpm test:legacy       # requires the legacy dev server on port 5173
+pnpm baseline:capture  # writes shots/baseline/ from the legacy dev server
 pnpm contracts:build
 pnpm typecheck
 ```
 
 `pnpm test:legacy` runs the 13-check Playwright baseline in
 `scripts/functional-test.mjs`. It expects Chrome or Edge at the paths the script
-probes and a running legacy dev server.
+probes and a running legacy dev server. Set `CHROME_PATH` to override the
+browser location. `pnpm baseline:capture` captures the design reference into
+`shots/baseline/` (ignored by Git); see `docs/visual-baseline.md`.
 
 ## Currency and locale rules
 

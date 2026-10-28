@@ -2,9 +2,9 @@ import { chromium } from 'playwright-core'
 import assert from 'node:assert/strict'
 import fs from 'node:fs'
 
-const executablePath = fs.existsSync('C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe')
-  ? 'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe'
-  : 'C:\\Program Files (x86)\\Microsoft\\Edge\\Application\\msedge.exe'
+import { resolveChromePath } from './browser-path.mjs'
+
+const executablePath = resolveChromePath()
 
 const browser = await chromium.launch({
   executablePath,

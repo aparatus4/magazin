@@ -24,6 +24,9 @@ playwright-report/
 test-results/
 blob-report/
 
+# Generated visual-baseline screenshots
+shots/
+
 # Local environment and secrets
 .env
 .env.*

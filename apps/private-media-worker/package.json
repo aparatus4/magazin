@@ -1,0 +1,20 @@
+{
+  "name": "@forma/private-media-worker",
+  "version": "0.0.0",
+  "private": true,
+  "description": "FORMA private media worker (Phase 3 scaffold)",
+  "license": "UNLICENSED",
+  "type": "module",
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "typecheck": "tsc -p tsconfig.json --noEmit"
+  },
+  "devDependencies": {
+    "@types/node": "24.10.1",
+    "typescript": "5.9.3"
+  },
+  "engines": {
+    "node": ">=24.22.1"
+  },
+  "packageManager": "pnpm@11.25.0"
+}

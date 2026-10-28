@@ -15,6 +15,7 @@
     "dev:legacy": "pnpm --dir legacy dev",
     "build:legacy": "pnpm --dir legacy build",
     "test:legacy": "node scripts/functional-test.mjs",
+    "baseline:capture": "node scripts/capture-baseline.mjs",
     "contracts:build": "pnpm --filter @forma/contracts build",
     "format:check": "prettier --check ."
   },

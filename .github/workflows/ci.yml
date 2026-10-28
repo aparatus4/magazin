@@ -1,0 +1,76 @@
+name: CI
+
+on:
+  push:
+    branches:
+      - main
+      - migration/medusa
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  NEXT_TELEMETRY_DISABLED: "1"
+  MEDUSA_TELEMETRY_DISABLED: "1"
+  # Dummy build-time values only. Never add real secrets to this workflow.
+  DATABASE_URL: postgres://ci:ci@127.0.0.1:5432/forma_ci
+  PAYLOAD_SECRET: ci-only-secret-ci-only-secret-000000
+  NEXT_PUBLIC_CMS_URL: http://localhost:3001
+
+jobs:
+  verify:
+    name: Install, lint, typecheck, build, test
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          run_install: false
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: .node-version
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Lint
+        run: pnpm lint
+
+      - name: Build
+        run: pnpm build
+
+      - name: Typecheck
+        run: pnpm typecheck
+
+      - name: Start legacy dev server
+        run: |
+          pnpm dev:legacy > /tmp/legacy-dev.log 2>&1 &
+          for attempt in $(seq 1 60); do
+            if curl -fsS http://127.0.0.1:5173 > /dev/null; then
+              exit 0
+            fi
+            sleep 1
+          done
+          echo "Legacy dev server did not start" >&2
+          cat /tmp/legacy-dev.log >&2
+          exit 1
+
+      - name: Legacy functional checks
+        run: pnpm test:legacy
+
+      # TODO(Phase 0/8.7.5): add scripts/security/check-invariants.sh,
+      # migration drift checks, and the hostile-fixture suite once those
+      # scripts exist.
