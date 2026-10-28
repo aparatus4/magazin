@@ -6,7 +6,7 @@
 >
 > **Status:** Static concept site complete. Medusa v2 architecture corrections, implementation-ready Phase 1–4 specifications, and adopted security hardening are documented; implementation not started.
 >
-> **Next action:** Review the remaining decisions, resolve the mobile-menu baseline timeout, then complete Phase 0 workspace/runtime/hosting setup.
+> **Next action:** Create the baseline tag after the Git hygiene cleanup, review the remaining decisions, resolve the mobile-menu baseline timeout, then complete Phase 0 workspace/runtime/hosting setup.
 
 ---
 
@@ -34,8 +34,8 @@
 | Field | Value |
 | --- | --- |
 | Current phase | **Phase 0 — Foundation** |
-| State | Planning complete — Sections 5–6 and Phases 1–4 include the initial and payment-hardening security POVs, including capture reconciliation and retry/idempotency controls; implementation not started |
-| Next action | Review remaining Section 3 and Section 11 decisions, resolve staff roles before the first Commission migration, clear the mobile-menu baseline timeout, then finish Phase 0 workspace/runtime/hosting setup |
+| State | Planning complete — Sections 5–6 and Phases 1–4 include the initial and payment-hardening security POVs, including capture reconciliation and retry/idempotency controls; implementation not started. Git hygiene rules are in place and generated build/dependency/cache files are excluded from version control. |
+| Next action | Create the baseline tag, review remaining Section 3 and Section 11 decisions, resolve staff roles before the first Commission migration, clear the mobile-menu baseline timeout, then finish Phase 0 workspace/runtime/hosting setup |
 | Blocking decisions | Phase 0: catalog depth, portrait pricing, custom-quote rules, CMS, hosting/accounts. Before the first Commission DML migration: staff-role policy. Before enabling cancellation/refund commands: cancellation/refund policy. Before Phase 3 release: private-asset delivery, retention periods, and hard upload-size gateway. |
 | Current app | Vite + React concept storefront at `http://127.0.0.1:5173` |
 | Current verification | `npm run build` passes; `node scripts/functional-test.mjs` passes 12/13 on two runs; mobile-menu category expansion times out. |
@@ -1995,7 +1995,8 @@ AR, trade/wholesale, multi-currency, loyalty, and advanced personalization can f
 - [x] Integrate the payment-hardening follow-up reviews into Section 8.7 and the Phase 1/3/4 contracts; keep unresolved role and infrastructure choices as explicit gates.
 - [ ] Review Section 3 with the user and record decisions.
 - [x] Initialize git; the repository has initial commit 4a658c6.
-- [ ] Add `.gitignore` and create a baseline tag for the current static site before restructuring; no tag exists yet.
+- [x] Add `.gitignore` and remove tracked generated output (`dist/`, `node_modules/`, and `npm-cache-temp/`) from the Git index while preserving local files.
+- [ ] Create a baseline tag for the current static site before restructuring; no tag exists yet.
 - [x] Create `AGENTS.md` pointing to this plan (done during planning).
 - [ ] Create a `migration/medusa` branch for the rebuild; merge in phase-sized increments.
 - [ ] Create pnpm workspace: `apps/storefront`, `apps/medusa`, `apps/private-media-worker`, `packages/contracts`, and `legacy/`.
@@ -2722,6 +2723,11 @@ export const QuoteEvent = model.define("quote_event", {
 - Clarified Charge→Payment Collection as the sole payment-side Module Link; added authorized-state handling, captured amount/currency/refund/hold guards, mismatch-resolution lifecycle, and price snapshot equality/CAS requirements.
 - Added the Quote intent-abandonment retry transaction, enqueue-owned three-attempt parser counter, R2 download-signer credential boundary, shared mesh contract rule, pricing bound, explicit DML defaults, and CI invariant-tool prerequisites. Staff roles and cancellation/refund policy remain gated decisions.
 - Documentation-only update. `npm run build` passes (Vite retains its >500 kB chunk advisory). `node scripts/functional-test.mjs` passed 12/13 checks on two runs; `mobile menu expands a category and links into the collection` timed out on both. No storefront implementation changed during this update; the baseline timeout is an unchecked Phase 0 follow-up. Only PLAN.md is intended for commit.
+
+### 2026-10-28 — Git hygiene audit
+
+- Added a root `.gitignore` for dependencies, build output, framework/tool caches, test artifacts, local environment files, and logs. Removed tracked `dist/`, `node_modules/`, and `npm-cache-temp/` contents from the Git index without deleting local files; retained `package-lock.json`, source files, `public/` assets, and the portrait attribution.
+- Verified the current Vite production build with `npm run build`; it passes with the existing large-chunk advisory. Ignore-rule checks confirmed build/dependency/cache paths and local `.env` files are ignored while the lockfile, `.env.example`, and attribution remain eligible for tracking. No application source changed.
 
 ## 14. Quick reference
 
