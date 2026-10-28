@@ -23,6 +23,7 @@ Vite build described in `PLAN.md`.
 
 ```powershell
 pnpm --filter @forma/medusa build
+pnpm --filter @forma/medusa admin:build
 pnpm --filter @forma/medusa typecheck
 pnpm --filter @forma/medusa exec medusa db:migrate
 pnpm --filter @forma/medusa exec medusa db:generate <module-name>
@@ -72,6 +73,20 @@ non-placeholder values; otherwise Medusa keeps its local provider. The provider
 logs the Resend message ID and never the API key or recipient address. Add and
 register a template before emitting a new template name.
 
+## Standalone Admin
+
+`admin:build` runs the pinned `medusa build --admin-only` and writes the Admin
+SPA to `.medusa/admin` (an `index.html` plus hashed assets). Deploy that folder
+to the dedicated Admin static host with SPA fallback. Keep all Admin API routes
+on the Medusa server, set `ADMIN_BACKEND_URL` to the public Medusa origin, and
+set `ADMIN_DISABLED=true` on the Medusa deployment so `/app` is not served
+twice. Local development leaves `ADMIN_DISABLED=false` and uses
+`http://localhost:9000/app`.
+
+The build prints an advisory warning when the Admin is enabled in
+`medusa-config.ts`; that is expected locally. In the production deployment,
+`ADMIN_DISABLED=true` removes the warning and the built-in dashboard.
+
 ## Environment rules
 
 - `DATABASE_URL`, `REDIS_URL`, `JWT_SECRET`, `COOKIE_SECRET`, and the three CORS
@@ -82,7 +97,9 @@ register a template before emitting a new template name.
   also required. Placeholder values such as `replace_me`, `changeme`, or
   `supersecret` are rejected, and every CORS origin must be exact HTTPS.
 - `ADMIN_PATH` defaults to `/app`. Set `ADMIN_BACKEND_URL` only when the Admin
-  SPA is hosted separately from the API.
+  SPA is hosted separately from the API. Set `ADMIN_DISABLED=true` in production
+  when the standalone Admin build is served from its own static host; leave it
+  `false` for local development at `/app`.
 - Stripe, the Redis workflow engine, and the public R2 file provider are
   registered only when their values are present and are not `.env.example`
   placeholders. Missing values in development fall back to Medusa's
@@ -104,7 +121,9 @@ problem instead of a partial boot.
 
 ## Scope
 
-This is a Phase 1 scaffold. Catalogue seeding and verification are in place;
-the standalone Admin build and the remaining Stripe/R2 flows are still being
-completed in Phase 1. Commissions, quotes, and private uploads follow in later
-phases. See `PLAN.md` for the authoritative task list.
+This is a Phase 1 scaffold. Catalogue seeding and verification, payment truth
+reconstruction, the transactional email adapter, and the standalone Admin build
+are in place; the remaining Stripe/R2 live verification, Admin deployment, and
+first Admin user are still being completed in Phase 1. Commissions, quotes, and
+private uploads follow in later phases. See `PLAN.md` for the authoritative task
+list.

@@ -56,6 +56,10 @@ export const RuntimeEnvSchema = z
 
     ADMIN_PATH: z.string().trim().startsWith("/").optional(),
     ADMIN_BACKEND_URL: optionalUrl,
+    ADMIN_DISABLED: z.preprocess(
+      emptyToUndefined,
+      z.enum(["true", "false"]).optional(),
+    ),
 
     // Public origin for catalogue renders used by the seed script.
     PUBLIC_ASSET_BASE_URL: optionalUrl,

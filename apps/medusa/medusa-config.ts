@@ -135,6 +135,7 @@ module.exports = defineConfig({
     },
   },
   admin: {
+    disable: env.ADMIN_DISABLED === "true",
     path: (env.ADMIN_PATH ?? "/app") as `/${string}`,
     backendUrl: env.ADMIN_BACKEND_URL,
   },
