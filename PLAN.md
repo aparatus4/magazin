@@ -34,9 +34,9 @@
 | Field | Value |
 | --- | --- |
 | Current phase | **Phase 0 — Foundation** |
-| State | Planning complete — Sections 5–6 and Phases 1–4 include the initial and payment-hardening security POVs, including capture reconciliation and retry/idempotency controls; implementation not started. Git hygiene rules are in place and generated build/dependency/cache files are excluded from version control. |
-| Next action | Create the baseline tag, review remaining Section 3 and Section 11 decisions, resolve staff roles before the first Commission migration, clear the mobile-menu baseline timeout, then finish Phase 0 workspace/runtime/hosting setup |
-| Blocking decisions | Phase 0: catalog depth, portrait pricing, custom-quote rules, CMS, hosting/accounts. Before the first Commission DML migration: staff-role policy. Before enabling cancellation/refund commands: cancellation/refund policy. Before Phase 3 release: private-asset delivery, retention periods, and hard upload-size gateway. |
+| State | Section 3 decisions recorded 2026-10-28: truthful 14-product seed designed for 40–60, Payload CMS, Romania-only launch with RON checkout and EUR indicative display, Romanian-primary/English-secondary routing, VAT-inclusive pricing, EU 14-day stock returns, custom reviews plus a Google band, managed infrastructure, no wholesale. Baseline tag `baseline-static-site` created. Implementation not started. |
+| Next action | Resolve the mobile-menu baseline timeout and rerun the 13-check suite, then complete Phase 0 workspace/runtime/hosting setup: Node/pnpm pin, `migration/medusa` branch, pnpm workspace, `packages/contracts`, app scaffolds, `.env.example`, CI, and accounts/projects. |
+| Blocking decisions | Phase 0: portrait pricing (deferred; config-driven, no published numbers), product price migration to RON, legal entity/address/contact/domain, and managed-service accounts. Before the first Commission DML migration: staff-role policy. Before enabling cancellation/refund commands: cancellation/refund policy. Before Phase 3 release: private-asset delivery, retention periods, and hard upload-size gateway. |
 | Current app | Vite + React concept storefront at `http://127.0.0.1:5173` |
 | Current verification | `npm run build` passes; `node scripts/functional-test.mjs` passes 12/13 on two runs; mobile-menu category expansion times out. |
 | Workspace | `E:\dev\rob\maga` (Windows, PowerShell; current Node 20.10 must be upgraded to the pinned Medusa-supported runtime in Phase 0) |
@@ -122,7 +122,7 @@ Product principles:
 | Tests | Playwright functional smoke suite (13 checks) |
 | Build | `tsc -b && vite build` |
 | Dev server | `http://127.0.0.1:5173` |
-| Git | **Not a git repository yet** |
+| Git | Repository on `main`; baseline tag `baseline-static-site` marks the pre-migration static site |
 
 ### 1.3 Current inventory
 
@@ -196,7 +196,7 @@ Product principles:
 - 3D element screenshots do not capture WebGL canvas content; use viewport screenshots.
 - The head scan is **LeePerrySmith.glb**, CC BY 3.0. Attribution is required in the footer and in any new product page that uses it.
 - The current catalogue copy advertises “86+”, “64+”, etc. while only 14 products exist. Resolve this before launch.
-- The current app is the design reference. Do not delete it until the replacement reaches parity; after git is initialized it will also live in history.
+- The current app is the design reference. Do not delete it until the replacement reaches parity; it is preserved in the `baseline-static-site` tag and will move to `legacy/`.
 
 ### 1.6 Demo-only features (must become real or be labelled)
 
@@ -219,31 +219,42 @@ Product principles:
 - Home should showcase the strongest selling points and only a little of the rest.
 - Add dedicated product/category pages, a portrait commission flow, a custom-print quote flow, deeper catalogue content, human proof, performance, and accessibility work.
 - The current static site is the baseline/reference, not the final architecture.
+- **Launch catalogue:** seed the truthful 14 products, design taxonomy/collections for 40–60, and remove “86+”/“64+” style claims immediately.
+- **CMS:** Payload 3 (Next.js-native) on Neon Postgres for projects, journal, materials, homepage modules, and About content. Commerce data stays in Medusa.
+- **Launch market:** Romania only; checkout in **RON**. **EUR is an indicative display currency** until an EU/EUR region with shipping is approved. Never treat the EUR conversion as a checkout price.
+- **Languages:** Romanian primary and English secondary, routed as `/ro` (default) and `/en`, with hreflang and localized metadata.
+- **Tax/pricing:** VAT-inclusive displayed prices, Romanian VAT configured in Medusa; no multi-country tax at launch.
+- **Returns:** EU 14-day withdrawal right on stock items; custom/commission pieces non-returnable after proof approval.
+- **Reviews:** custom Medusa verified-review module plus an optional attributed Google reviews band. Google reviews never count as verified product ratings.
+- **Photography:** CGI renders for launch; real studio/people/product photography before public launch.
+- **Infrastructure:** managed services (Vercel, Railway/Fly/Render, Neon, Upstash, Cloudflare R2, Meilisearch Cloud, Payload app, Resend, Stripe).
+- **Trade/wholesale:** out of launch scope.
+- **Open:** portrait pricing and product RON prices remain configuration/business decisions; do not publish placeholder numbers.
 
 ### 2.2 Recommended defaults — confirm during Phase 0
 
 | Decision | Recommendation | Why |
 | --- | --- | --- |
 | Frontend | **Next.js App Router + TypeScript**, keep custom CSS | SSR/ISR, SEO, metadata, server cart, product pages |
-| Repo layout | **pnpm workspace**: `apps/storefront`, `apps/medusa`, `legacy/` | One CI and one place for docs; current app preserved |
-| CMS | **Sanity** for projects, journal, materials editorial, homepage modules | Commerce stays in Medusa; editors get a real CMS |
+| Repo layout | **pnpm workspace**: `apps/storefront`, `apps/medusa`, `apps/cms`, `apps/private-media-worker`, `packages/contracts`, `legacy/` | One CI and one place for docs; current app preserved |
+| CMS | **Payload 3** (Next.js-native) on Neon Postgres for projects, journal, materials editorial, homepage modules, About | Commerce stays in Medusa; editors get a real CMS; no separate content SaaS |
 | Search | **Meilisearch** | Typo tolerance, synonyms, instant search, easy indexing |
-| Reviews | **Custom Medusa module** tied to orders | Verified reviews, commission reviews, full design control |
+| Reviews | **Custom Medusa module** tied to orders, plus an attributed Google reviews band | Verified reviews, commission reviews, full design control; Google reviews are never verified product ratings |
 | 3D | Keep Three.js hero; **GLB + `<model-viewer>`** for product AR; custom viewer for finish switching | Best balance of quality, AR support, and control |
-| Hosting | Vercel (storefront), Railway/Fly/Render (Medusa), Neon (Postgres), Upstash (Redis), Cloudflare R2, Meilisearch Cloud, Sanity, Resend, Stripe | Managed, low-ops, scales with a small studio |
+| Hosting | Vercel (storefront + Payload CMS), Railway/Fly/Render (Medusa), Neon (Postgres), Upstash (Redis), Cloudflare R2, Meilisearch Cloud, Resend, Stripe | Managed, low-ops, scales with a small studio |
 | Analytics | **PostHog** with consent; GA4 optional | Funnels, session replay, experiments |
-| Currency/markets | USD + English at launch; structure for regions | Avoid multi-currency complexity before launch |
+| Currency/markets | Romania region in **RON** at launch; **EUR indicative display only**; Romanian primary / English secondary (`/ro`, `/en`); structure for an EU/EUR region later | Native Medusa one-currency-per-region model; avoids a custom dual-currency checkout |
 | Payments | Stripe via Medusa payment provider | Deposits, balances, webhooks, PCI compliance |
-| Portrait deposit | 30% at booking | Standard for commissioned work; confirm |
-| Custom quote deposit | 50% at acceptance | Confirm |
+| Portrait deposit | 30% at booking; pricing and deposit remain provisional until portrait pricing is confirmed | Standard for commissioned work; confirm |
+| Custom quote deposit | 50% at acceptance; Phase 4 v1 uses one full-payment checkout unless a deposit decision is recorded | Confirm |
 | Catalogue | Seed the current 14, structure for 40–60, fix misleading counts immediately | Honest content now, room to grow |
-| Launch markets | US, UK, EU; DDP where practical | Confirm with shipping provider |
+| Launch markets | Romania only; EU later once shipping/tax is proven | Confirmed 2026-10-28 |
 
 ### 2.3 Explicitly out of scope for launch
 
 - AR is desirable but can follow the commerce spine.
 - Trade/wholesale portal, net terms, and volume accounts.
-- Multi-currency and multi-language.
+- Additional currencies beyond RON/EUR and additional languages beyond Romanian/English.
 - Loyalty, referrals, gift cards.
 - AI-generated portrait likenesses. The commission flow should be honest about artist-led sculpting unless a vetted 3D-scan/AI pipeline is added later.
 - Full ERP integration. Medusa Admin plus focused widgets is enough.
@@ -254,18 +265,19 @@ Product principles:
 
 | # | Decision | Why it matters | Default if no answer | Status |
 | --- | --- | --- | --- | --- |
-| 1 | **Catalogue depth:** expand to 40–60 products or consolidate to a truthful 14? | Determines category pages, seed data, merchandising, and copy | Seed 14 now; design for 40+; fix “86+” claims immediately | Open |
-| 2 | **Portrait pricing:** sizes, finishes, plinth options, lead time, deposit | Needed for configurator, checkout, and copy | 18/24/30 cm; from $189; 3–5 weeks; 30% deposit | Open |
-| 3 | **Custom quote rules:** processes, materials, max build volume, formats, pricing formula, turnaround | Needed for quote module and pricing engine | FDM/SLA/SLS; STL/OBJ/3MF instant; STEP manual review; 3–5 days for complex | Open |
-| 4 | **Shipping/returns/tax:** regions, DDP/DDU, returns policy | Checkout and legal copy | US/UK/EU; DDP where possible; 30-day returns on stock; custom non-returnable after proof approval | Open |
-| 5 | **CMS:** Sanity vs Payload vs MDX | Content workflow and deployment | Sanity; MDX only if launch speed matters more than editor workflow | Open |
-| 6 | **Reviews:** custom vs third-party | Verification, moderation, commission reviews | Custom Medusa module | Open |
-| 7 | **Photography:** CGI-only or real studio/people/product shoot? | The biggest remaining trust gap | Keep CGI for launch; commission real photos for About/studio/portrait before launch | Open |
-| 8 | **Infrastructure/accounts:** managed services vs self-host | Cost, ops, deployment | Managed services listed in 2.2 | Open |
-| 9 | **Legal/entity/address:** business name, address, policies, contact email | Required for policies, emails, local SEO | Treat the current address and `studio@forma.example` as placeholders; replace with verified details before launch | Open |
-| 10 | **Trade/wholesale at launch?** | Adds account and pricing complexity | No; phase 7 | Open |
-| 11 | **Multi-currency/language at launch?** | Region and content complexity | No; USD/English | Open |
-| 12 | **Domain, email, and social handles** | Launch requirement | TBD | Open |
+| 1 | **Catalogue depth:** expand to 40–60 products or consolidate to a truthful 14? | Determines category pages, seed data, merchandising, and copy | Seed 14 now; design for 40+; fix “86+” claims immediately | **Confirmed 2026-10-28** — seed 14, design for 40–60, remove inflated counts |
+| 2 | **Portrait pricing:** sizes, finishes, plinth options, lead time, deposit | Needed for configurator, checkout, and copy | 18/24/30 cm; from $189; 3–5 weeks; 30% deposit | **Open** — explicitly deferred; build config-driven pricing, publish no numbers until real costs/margins are supplied |
+| 3 | **Custom quote rules:** processes, materials, max build volume, formats, pricing formula, turnaround | Needed for quote module and pricing engine | FDM/SLA/SLS; STL/OBJ/3MF instant; STEP manual review; 3–5 days for complex | **Confirmed 2026-10-28** — defaults accepted; actual rates/build envelope still required before instant pricing |
+| 4 | **Shipping/returns/tax:** regions, DDP/DDU, returns policy | Checkout and legal copy | US/UK/EU; DDP where possible; 30-day returns on stock; custom non-returnable after proof approval | **Confirmed 2026-10-28** — Romania-only launch; VAT-inclusive RON prices with Romanian VAT via Medusa tax; EU 14-day withdrawal on stock; custom non-returnable after proof approval; carrier/rates TBD |
+| 5 | **CMS:** Sanity vs Payload vs MDX | Content workflow and deployment | Sanity; MDX only if launch speed matters more than editor workflow | **Confirmed 2026-10-28** — Payload 3 on Neon Postgres |
+| 6 | **Reviews:** custom vs third-party | Verification, moderation, commission reviews | Custom Medusa module | **Confirmed 2026-10-28** — custom verified module plus attributed Google reviews band (not verified product ratings) |
+| 7 | **Photography:** CGI-only or real studio/people/product shoot? | The biggest remaining trust gap | Keep CGI for launch; commission real photos for About/studio/portrait before launch | **Confirmed 2026-10-28** — CGI now; real photos before public launch |
+| 8 | **Infrastructure/accounts:** managed services vs self-host | Cost, ops, deployment | Managed services listed in 2.2 | **Confirmed 2026-10-28** — managed services; accounts still to create |
+| 9 | **Legal/entity/address:** business name, address, policies, contact email | Required for policies, emails, local SEO | Treat the current address and `studio@forma.example` as placeholders; replace with verified details before launch | **Open** — placeholders until verified; launch blocker |
+| 10 | **Trade/wholesale at launch?** | Adds account and pricing complexity | No; phase 7 | **Confirmed 2026-10-28** — no wholesale at launch |
+| 11 | **Multi-currency/language at launch?** | Region and content complexity | No; USD/English | **Confirmed 2026-10-28** — RON checkout + EUR indicative display; `/ro` default + `/en`; EU/EUR region later |
+| 12 | **Domain, email, and social handles** | Launch requirement | TBD | **Open** — placeholders until verified; launch blocker |
+| 13 | **Product price migration to RON:** how to convert/reprice the 14 seed products | Wrong prices/margins and misleading savings | Keep current numbers as placeholders; do not seed them as RON until a documented conversion/margin review | **Open** — blocks Phase 1 catalogue seeding |
 
 When a decision is confirmed, move it to Section 2.1 and add an entry to the decision log in Section 11.
 
@@ -485,7 +497,7 @@ If not, keep it as a section, filter, or anchor on an existing page.
 | Personalisation | Cart line-item metadata | Gift note, engraving, dedication; validate and bound user input |
 | Customers, carts, orders | **Native Commerce Modules** | Do not recreate these in custom tables; use core workflows and APIs |
 | Custom-domain relations | **Module Links** | Associate Quote/Commission with Customer, Cart, and Order across module boundaries |
-| Markets | Regions + currencies | USD launch; structure for UK/EU |
+| Markets | Regions + currencies | Romania region in RON at launch; EUR is indicative display only; add an EU/EUR region when EU shipping is approved |
 | Taxes | Medusa tax regions / provider | Confirm Stripe Tax or a Medusa tax provider |
 | Shipping | Shipping options/providers | Keep production lead time distinct from transit time |
 | Payments | Medusa Payment Module + Stripe provider | Use provider-backed payment collections/sessions for deposits and balances |
@@ -595,6 +607,7 @@ Admin needs: Medusa Admin UI route/widget for queue by production stage, assignm
 - Model product/service/order associations with Module Links. Derive `verified` server-side from an eligible fulfilled order/commission; never accept a client-supplied verification flag.
 - State: `pending | published | rejected`; require moderation, rate limits, abuse controls, and a deletion/reporting path.
 - Compute or cache aggregate ratings from published reviews only. Do not seed placeholder reviews as verified, and do not publish ratings or review counts without real records.
+- Google Business Profile reviews may be displayed as a separately attributed external source. They are not verified purchase reviews, must not be labelled as verified, and must not feed product rating aggregates or `Review` structured data. Fetch them server-side under the API's caching/attribution terms and fail closed to an empty band.
 
 #### Capacity / booking (optional, phase 3)
 
@@ -602,18 +615,20 @@ Made-to-order capacity is operational capacity, not sellable inventory. Prefer a
 
 ### 5.4 Content model (CMS)
 
-Keep commerce in Medusa and long-form content in the CMS (Sanity by default).
+Keep commerce in Medusa and long-form content in **Payload 3** (Next.js-native, Neon Postgres, `apps/cms`). Payload owns projects, journal, materials editorial, homepage modules, About/studio content, and testimonials. Collections/globals are localized in Romanian and English; the storefront reads published content server-side and revalidates through signed webhooks.
+
+Payload collections and globals:
 
 | Content type | Fields |
 | --- | --- |
 | **Homepage** | Hero slides (eyebrow, title, copy, CTAs, media/product refs), featured collection, selected products, selected projects, review refs, announcement |
 | **Project** | Title, slug, client, location, year, services, products used, cover, gallery, brief, challenge, process, result, client quote, SEO |
-| **Journal post** | Title, slug, excerpt, cover, portable-text body, author, categories, related products, SEO |
+| **Journal post** | Title, slug, excerpt, cover, portable-text/rich-text body, author, categories, related products, SEO |
 | **Material** | Name, slug, processes, properties, colours, care, image, description, compatible products, SEO |
 | **About/studio** | Story, team, machines, values, gallery, press, SEO |
 | **Testimonial** | Quote, name, context, product/service, permission, image (optional) |
 
-References use Medusa product handles or IDs, never duplicated product data. If Sanity is not ready, use MDX/local content for launch and migrate later.
+References use Medusa product handles or IDs, never duplicated product data. If Payload is not ready, use MDX/local content for launch and migrate later.
 
 ### 5.5 Seed and migration mapping
 
@@ -646,14 +661,15 @@ Fix during migration:
 
 - Stripe test mode first; verify webhook signatures; use idempotency keys for payment/order mutations and make event handlers replay-safe.
 - Standard products: full payment at checkout using Medusa's native cart, payment collection/session, and order workflows.
-- Portrait commissions: proposed 30% deposit and balance before shipping; confirm the commercial terms and model each charge with Medusa's Payment Module/provider. Keep commission production status separate from payment status.
-- Custom quotes: proposed 50% deposit or full payment at acceptance; confirm. Lock quote revision and amount server-side before cart conversion, then let Medusa recalculate tax, discounts, shipping, and totals.
+- Portrait commissions: proposed 30% deposit and balance before shipping; portrait pricing and deposit remain provisional until Section 3 decision 2 is resolved. Model each charge with Medusa's Payment Module/provider and keep commission production status separate from payment status.
+- Custom quotes: Phase 4 v1 uses one full-payment checkout. A 50% deposit requires a separate recorded decision, a QuoteCharge model, and revised payment links before implementation. Lock quote revision and amount server-side before cart conversion, then let Medusa recalculate tax, discounts, shipping, and totals.
 - Never treat a browser redirect as proof of payment; transition paid states only from verified Medusa/provider events.
 - Ready-to-ship: track inventory and decrement through Medusa order workflows.
 - Made-to-order: allow backorder only where configured, show production lead time, and track capacity separately.
-- Shipping: flat/calculated options per region; keep production lead time separate from carrier transit time; store tracking through the appropriate fulfillment/provider flow.
-- Tax: configure regions; use Stripe Tax or a Medusa tax provider. Confirm DDP/DDU.
-- Refunds/returns: standard stock returns; custom/commission terms after proof approval (confirm).
+- Shipping: Romania-only flat-rate/manual options at launch; keep production lead time separate from carrier transit time; add an EU/EUR region and carrier integrations after launch. Store tracking through the appropriate fulfillment/provider flow.
+- Tax: Romania region with Romanian VAT; display VAT-inclusive prices. Confirm the current standard VAT rate with the accountant before launch. No multi-country tax at launch.
+- Refunds/returns: EU 14-day withdrawal right on stock items; custom/commission pieces non-returnable after proof approval. Publish the policy before checkout goes live.
+- Currency: checkout is RON only. EUR is a server-rendered indicative conversion with a versioned rate and timestamp; it never becomes a cart, order, or payment amount.
 - Emails: order confirmation, commission stages, quote ready, proof ready, shipped, review request; dispatch through idempotent workflow/subscriber handling.
 
 ---
@@ -663,6 +679,8 @@ Fix during migration:
 ### 6.1 Next.js App Router
 
 - Migrate from the Vite SPA to a separately deployed **Next.js App Router + TypeScript** storefront. Pin compatible, supported Next.js, React, `@medusajs/js-sdk`, and `@medusajs/types` versions in the lockfile; do not use floating `latest` dependencies in production.
+- Route the storefront as `/ro` (default) and `/en` with locale-aware metadata, canonical URLs, and hreflang. Use next-intl or the framework-native equivalent; keep one canonical URL per locale and localize Payload content in both languages.
+- Run **Payload 3** as a separate Next.js app in `apps/cms` on Neon Postgres. The storefront reads published content server-side and revalidates through signed webhooks. Payload admin credentials and database secrets are server-only; the CMS admin is noindex and is never embedded in storefront browser code.
 - Keep pages/layouts as Server Components by default. Fetch public catalogue, category, product, collection, and CMS data on the server through a server-only Medusa SDK instance; render project/editorial pages on the server as appropriate. Use Client Components only for browser state, event handlers, browser APIs, WebGL, and genuinely interactive query surfaces. ([Next.js Server and Client Components](https://nextjs.org/docs/app/getting-started/server-and-client-components))
 - Do not use the legacy `medusa-react` package or the v1 JS client. Medusa v2 no longer supports Medusa React; use `@medusajs/js-sdk` and TanStack Query (or an equivalent current query library) only where client-side cache/interaction is needed. ([Medusa v1-to-v2 changes](https://docs.medusajs.com/learn/introduction/from-v1-to-v2), [Medusa JS SDK](https://docs.medusajs.com/resources/js-sdk))
 - Create separate server and browser SDK configurations. The publishable API key and public backend URL may be exposed to the browser; admin tokens, secret API keys, R2 credentials, revalidation secrets, and private customer data must remain server-only. Never call Medusa Admin APIs from storefront browser code.
@@ -676,6 +694,7 @@ Fix during migration:
 ### 6.2 State and cart
 
 - Medusa is the source of truth for cart, customer, order, quote conversion, and payment state. A client cache is only a view/optimistic layer and never an authority for price, inventory, ownership, or payment.
+- Cart and checkout are RON-only at launch. EUR is a server-rendered indicative conversion using a versioned rate and timestamp; it is never sent to Medusa as a price and never used for order totals, structured data, or payment.
 - Keep the opaque cart ID in a `Secure`, `HttpOnly`, `SameSite=Lax` cookie scoped to the storefront. Read/update it only on the server; validate the cart, sales channel, customer association, and item eligibility before each mutation. Do not expose admin credentials or trust cart/quote IDs passed by the client without ownership checks.
 - Use Server Actions for normal same-origin form mutations and Route Handlers for explicit HTTP endpoints, signed webhooks, upload-intent/finalization, and operations requiring streaming or protocol controls. Treat every Server Action and Route Handler as a public endpoint: validate input with Zod, authenticate, authorize resource ownership, rate-limit, enforce CSRF/origin policy, use idempotency for non-repeatable operations, and return minimal DTOs. Never accept client-calculated prices, customer IDs, status transitions, or payment success. ([Next.js Server Actions](https://nextjs.org/docs/app/getting-started/mutating-data), [Next.js data security](https://nextjs.org/docs/app/guides/data-security))
 - Use a server-side data-access layer to centralize Medusa SDK calls, session handling, ownership checks, field selection, and DTO mapping. Keep secrets and session credentials in server-only modules; use secure cookies for authentication state.
@@ -763,10 +782,10 @@ Use consent-gated analytics; send server-side purchase events where possible. Do
 | **Cloudflare R2 / S3** | Public product images/GLBs plus isolated private staging/quarantine | Public: `R2_PUBLIC_ENDPOINT`, `R2_PUBLIC_BUCKET`, `R2_PUBLIC_ACCESS_KEY_ID`, `R2_PUBLIC_SECRET_ACCESS_KEY`, `R2_PUBLIC_URL`; private: `R2_PRIVATE_ENDPOINT`, `R2_PRIVATE_REGION`, `R2_UPLOAD_STAGING_BUCKET`, `R2_UPLOAD_STAGING_ACCESS_KEY_ID`, `R2_UPLOAD_STAGING_SECRET_ACCESS_KEY`, `R2_UPLOAD_QUARANTINE_BUCKET`, `R2_UPLOAD_QUARANTINE_ACCESS_KEY_ID`, `R2_UPLOAD_QUARANTINE_SECRET_ACCESS_KEY`, `R2_WORKER_ACCESS_KEY_ID`, `R2_WORKER_SECRET_ACCESS_KEY`, `R2_DOWNLOAD_SIGNER_ACCESS_KEY_ID`, `R2_DOWNLOAD_SIGNER_SECRET_ACCESS_KEY`, `UPLOAD_INTENT_SECRET` | 1/3/4 |
 | **Resend** | Transactional email, stage notifications | `RESEND_API_KEY`, `RESEND_FROM` | 1/3 |
 | **Meilisearch** | Product/category/project search | `MEILISEARCH_HOST`, `MEILISEARCH_API_KEY` | 2 |
-| **Sanity** | Projects, journal, materials, homepage | `SANITY_PROJECT_ID`, `SANITY_DATASET`, `SANITY_API_TOKEN` | 5 |
+| **Payload 3** | Projects, journal, materials, homepage, About | `PAYLOAD_DATABASE_URL`, `PAYLOAD_SECRET`, `PAYLOAD_PUBLIC_SERVER_URL` | 5 |
 | **PostHog** | Product analytics, funnels, experiments | `NEXT_PUBLIC_POSTHOG_KEY`, `NEXT_PUBLIC_POSTHOG_HOST` | 6 |
 | **Sentry** | Error monitoring | `SENTRY_DSN` | 6 |
-| **Vercel** | Storefront hosting | — | 6 |
+| **Vercel** | Storefront + Payload CMS hosting | — | 6 |
 | **Railway/Fly/Render** | Medusa hosting | — | 6 |
 | **Stripe CLI** | Local webhook testing | — | 1 |
 
@@ -775,14 +794,19 @@ Storefront secrets (examples):
 ```env
 NEXT_PUBLIC_MEDUSA_URL=
 NEXT_PUBLIC_MEDUSA_PUBLISHABLE_KEY=
+MEDUSA_BACKEND_URL=
+MEDUSA_PUBLISHABLE_KEY=
 NEXT_PUBLIC_SITE_URL=
 REVALIDATE_SECRET=
 NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY=
 NEXT_PUBLIC_POSTHOG_KEY=
 NEXT_PUBLIC_POSTHOG_HOST=
-SANITY_PROJECT_ID=
-SANITY_DATASET=
-SANITY_API_TOKEN=
+PAYLOAD_DATABASE_URL=
+PAYLOAD_SECRET=
+PAYLOAD_PUBLIC_SERVER_URL=
+NEXT_PUBLIC_CMS_URL=
+EUR_TO_RON_DISPLAY_RATE=
+EUR_TO_RON_DISPLAY_RATE_DATE=
 ```
 
 Rules:
@@ -801,6 +825,7 @@ Rules:
 ### 8.1 SEO
 
 - Unique title/meta/canonical per public page.
+- Locale-aware canonicals and hreflang for `/ro` and `/en`; Romanian is the default and `x-default`.
 - Open Graph and Twitter images, including dynamic product/OG images.
 - JSON-LD: Organization/LocalBusiness, Product, Offer, Review, BreadcrumbList, Article, FAQPage.
 - Sitemap and robots generated from real routes.
@@ -1665,6 +1690,10 @@ headers at the standalone static host/CDN response layer; Vite build configurati
 headers. Asset responses served by proxy get `Content-Security-Policy: default-src 'none'; img-src 'self'` and
 `nosniff`. Staging must verify actual storefront, Admin, and asset response headers, not only config files.
 
+The Payload admin gets the same strict baseline, is `noindex`, and is isolated from storefront public pages; Payload
+database/admin secrets never reach the browser. The EUR indicative conversion is display-only: checkout totals, order
+records, and structured data always use the server-authoritative RON price from Medusa.
+
 Cookies: `__Host-forma_session` and `__Host-forma_cart` — `Secure; HttpOnly; SameSite=Lax; Path=/`, no `Domain`.
 
 ---
@@ -1961,7 +1990,7 @@ Section 11 is the sole source of truth for decision status, owner, and gate. Res
 
 | Phase | Name | Status | Est. effort |
 | --- | --- | --- | --- |
-| 0 | Foundation & decisions | **Planning complete — architecture and roadmap specified** | 0.5–1 day |
+| 0 | Foundation & decisions | **In progress — decisions recorded, baseline tagged; workspace/runtime setup next** | 0.5–1 day |
 | 1 | Medusa foundation | Not started | 3–5 days |
 | 2 | Next.js storefront spine | Not started | 5–8 days |
 | 3 | Portrait Studio flow | Not started | 5–8 days |
@@ -1993,20 +2022,22 @@ AR, trade/wholesale, multi-currency, loyalty, and advanced personalization can f
 - [x] Review and correct the Medusa v2 / Next.js architecture in Sections 5–6.
 - [x] Expand Phases 1–4 with implementation paths, data contracts, workflow boundaries, library choices, and security acceptance criteria.
 - [x] Integrate the payment-hardening follow-up reviews into Section 8.7 and the Phase 1/3/4 contracts; keep unresolved role and infrastructure choices as explicit gates.
-- [ ] Review Section 3 with the user and record decisions.
+- [x] Review Section 3 with the user and record decisions (2026-10-28; see Section 11).
 - [x] Initialize git; the repository has initial commit 4a658c6.
 - [x] Add `.gitignore` and remove tracked generated output (`dist/`, `node_modules/`, and `npm-cache-temp/`) from the Git index while preserving local files.
-- [ ] Create a baseline tag for the current static site before restructuring; no tag exists yet.
+- [x] Create a baseline tag for the current static site before restructuring: `baseline-static-site` (2026-10-28).
 - [x] Create `AGENTS.md` pointing to this plan (done during planning).
 - [ ] Create a `migration/medusa` branch for the rebuild; merge in phase-sized increments.
-- [ ] Create pnpm workspace: `apps/storefront`, `apps/medusa`, `apps/private-media-worker`, `packages/contracts`, and `legacy/`.
+- [ ] Pin the workspace runtime: upgrade Node to the exact Medusa-supported version (current CLI docs require ≥22.22.0), pin pnpm, and record the versions in the root README and lockfile.
+- [ ] Create pnpm workspace: `apps/storefront`, `apps/medusa`, `apps/cms`, `apps/private-media-worker`, `packages/contracts`, and `legacy/`.
 - [ ] Create `packages/contracts` as workspace package `@forma/contracts`; build strict TypeScript/Zod contracts to `dist/` and export `./product`, `./commission`, `./quote`, and `./mesh-analysis` for both apps.
+- [ ] Document the RON/EUR display model and `/ro` + `/en` routing in the root README and app env examples; never let EUR display values reach checkout.
 - [ ] Resolve the current mobile-menu Playwright timeout (`node scripts/functional-test.mjs`: 12/13 on two runs), rerun the 13-check baseline, and update these metrics before moving the Vite app to `legacy/`.
 - [ ] Move the current Vite app to `legacy/` (or preserve it in git history and keep a reference copy).
-- [ ] Scaffold Medusa v2 and Next.js apps; pin exact versions; document them.
-- [ ] Add `.env.example` for both apps and a root README.
+- [ ] Scaffold Medusa v2, Next.js storefront, and Payload CMS apps; pin exact versions; document them.
+- [ ] Add `.env.example` for each app and a root README.
 - [ ] Add CI: install pnpm and ripgrep before running `scripts/security/check-invariants.sh`; run lint, typecheck, build, tests, security invariants, and migration checks.
-- [ ] Create accounts/projects (user-assisted): Neon, Upstash, R2, Stripe test, Resend, Meilisearch, Sanity, Vercel, Railway/Fly.
+- [ ] Create accounts/projects (user-assisted): Neon (Medusa + Payload), Upstash, R2, Stripe test, Resend, Meilisearch, Vercel, Railway/Fly.
 - [ ] Document the visual baseline and screenshot references.
 - [ ] Update the current-focus block.
 
@@ -2014,13 +2045,13 @@ AR, trade/wholesale, multi-currency, loyalty, and advanced personalization can f
 
 ### 9.4 Phase 1 — Medusa foundation
 
-- [ ] **Pin runtime and dependencies.** Set the root Node version to one supported by the exact pinned Medusa CLI/framework release; the current CLI docs require Node 22.22.0 or later. Record Node, pnpm, Medusa, Next.js, and React versions in the root README and lockfile. Pin all aligned Medusa packages to one exact release, never floating `latest`; require Medusa ≥2.11.1 if retaining Stripe custom-metadata assertions, and verify the selected release includes PR #13588's automatic-capture race fix. Payment resolution must work without provider metadata. Use monorepo paths apps/medusa, apps/storefront, packages/contracts, and preserve the existing app in legacy/.
+- [ ] **Pin runtime and dependencies.** Set the root Node version to one supported by the exact pinned Medusa CLI/framework release; the current CLI docs require Node 22.22.0 or later. Record Node, pnpm, Medusa, Next.js, and React versions in the root README and lockfile. Pin all aligned Medusa packages to one exact release, never floating `latest`; require Medusa ≥2.11.1 if retaining Stripe custom-metadata assertions, and verify the selected release includes PR #13588's automatic-capture race fix. Payment resolution must work without provider metadata. Use monorepo paths apps/medusa, apps/storefront, apps/cms, packages/contracts, and preserve the existing app in legacy/.
 - [ ] **Install backend packages in apps/medusa/package.json.** Runtime: @medusajs/medusa, @medusajs/framework, @medusajs/cli, zod (or @medusajs/framework/zod inside Medusa code), @aws-sdk/client-s3, @aws-sdk/s3-request-presigner, and resend. Keep Medusa packages on one pinned release. Use @medusajs/medusa/core-flows for commerce workflows; do not write commerce tables or duplicate core services.
 - [ ] **Configure apps/medusa/medusa-config.ts.** Read database, Redis, JWT, cookie, CORS, Stripe, public R2, and Resend configuration only from process.env; validate required production variables at boot and fail startup when missing. Configure PostgreSQL with projectConfig.databaseUrl, JWT_SECRET, and COOKIE_SECRET. Set `STORE_CORS` to the storefront HTTPS origin only, `ADMIN_CORS` to the standalone Admin HTTPS origin only, and `AUTH_CORS` to the exact allowed auth client origins; no wildcard or `null` origins. `.env.example` may use obvious placeholders, but deployment validation must reject placeholders and require exact origins. Register Redis Workflow Engine from @medusajs/medusa/workflow-engine-redis with redis.redisUrl from REDIS_URL; do not use deprecated url configuration.
 - [ ] **Create apps/medusa/.env.example and apps/medusa/README.md.** Document DATABASE_URL, REDIS_URL, JWT_SECRET, COOKIE_SECRET, STORE_CORS, ADMIN_CORS, AUTH_CORS, STRIPE_API_KEY, STRIPE_WEBHOOK_SECRET, R2_PUBLIC_ENDPOINT, R2_PUBLIC_BUCKET, R2_PUBLIC_ACCESS_KEY_ID, R2_PUBLIC_SECRET_ACCESS_KEY, R2_PUBLIC_URL, R2_PRIVATE_ENDPOINT, R2_PRIVATE_REGION, R2_UPLOAD_STAGING_BUCKET, R2_UPLOAD_STAGING_ACCESS_KEY_ID, R2_UPLOAD_STAGING_SECRET_ACCESS_KEY, R2_UPLOAD_QUARANTINE_BUCKET, R2_UPLOAD_QUARANTINE_ACCESS_KEY_ID, R2_UPLOAD_QUARANTINE_SECRET_ACCESS_KEY, R2_WORKER_ACCESS_KEY_ID, R2_WORKER_SECRET_ACCESS_KEY, R2_DOWNLOAD_SIGNER_ACCESS_KEY_ID, R2_DOWNLOAD_SIGNER_SECRET_ACCESS_KEY, UPLOAD_INTENT_SECRET, RESEND_API_KEY, and RESEND_FROM. Use dummy values only. Scope each R2 key to its assigned bucket/role; the private-download signer is Medusa-only and separate from the worker read key; never share public-asset credentials with private upload or worker services. Never commit populated environment files.
 - [ ] **Configure the public file provider.** Register @medusajs/medusa/file and @medusajs/medusa/file-s3 in apps/medusa/medusa-config.ts. Map file_url, access_key_id, secret_access_key, bucket, region: "auto", and R2 endpoint from environment variables. This provider serves public catalogue images and GLBs only. Customer uploads use a separate private R2 bucket and never receive a public URL.
-- [ ] **Configure Stripe in Medusa.** Register @medusajs/medusa/payment-stripe under @medusajs/medusa/payment with apiKey, webhook secret, and explicit `capture: true` from validated server configuration; the launch flow captures the approved amount at checkout, while deposit percentage remains a Section 3 business decision. Preserve Medusa's native `/hooks/payment/stripe_stripe` route; do not add a second Stripe webhook endpoint or persist card data. Enable Stripe only for the configured USD region. Provider metadata is not a resolver; if the optional metadata assertion is retained, obey the v2.11.1 version floor above.
-- [ ] **Seed the initial commerce configuration in apps/medusa/src/scripts/seed.ts.** Idempotently create/retrieve one launch region with currency usd, English defaults, and the storefront sales channel. Add only tax and shipping providers/options approved in Section 3. Do not silently enable US/UK/EU markets, tax collection, DDP, return promises, or shipping rates while decisions remain open.
+- [ ] **Configure Stripe in Medusa.** Register @medusajs/medusa/payment-stripe under @medusajs/medusa/payment with apiKey, webhook secret, and explicit `capture: true` from validated server configuration; the launch flow captures the approved amount at checkout, while deposit percentage remains a Section 3 business decision. Preserve Medusa's native `/hooks/payment/stripe_stripe` route; do not add a second Stripe webhook endpoint or persist card data. Enable Stripe only for the configured RON region. Provider metadata is not a resolver; if the optional metadata assertion is retained, obey the v2.11.1 version floor above.
+- [ ] **Seed the initial commerce configuration in apps/medusa/src/scripts/seed.ts.** Idempotently create/retrieve one Romania region with country `ro`, currency `ron`, Romanian default locale, VAT-inclusive tax configuration, and the storefront sales channel. Add only tax and shipping providers/options approved in Section 3. Create Romania flat-rate/manual shipping options; do not create an EU/EUR region, enable EU shipping, or promise DDP/returns beyond the approved policy. Seed product prices in RON only after the product price migration decision (Section 3 decision 13) is recorded; never reuse the current USD-style numbers as RON.
 - [ ] **Provision the first Admin user.** Run pnpm --dir apps/medusa exec medusa user --email <operator-email> --invite, or use --password only through a secure terminal that does not record the secret. Verify login at the configured Admin URL. Use least privilege supported by the pinned release and document provisioning/offboarding in apps/medusa/README.md.
 - [ ] **Build the Medusa Admin as FORMA's standalone Vite SPA.** Put custom routes/widgets in apps/medusa/src/admin/ and use @medusajs/admin-sdk (defineRouteConfig) and @medusajs/ui. Add an `admin:build` script in apps/medusa/package.json that runs the pinned `medusa build --admin-only`; deploy its `.medusa/admin` output to the dedicated Admin static host with SPA fallback. Set `admin.path` and `admin.backendUrl` in apps/medusa/medusa-config.ts, configure exact-origin backend CORS and static-host security headers, and keep Admin API routes in the Medusa server. Add `scripts/security/check-deployed-headers.mjs` to verify the staging storefront, Admin, and private-asset response headers. The normal combined build's `/app` path is a supported Medusa v2 mode but is not the FORMA deployment target. Do not implement Admin as a Next.js route. ([Admin](https://docs.medusajs.com/learn/fundamentals/admin), [build](https://docs.medusajs.com/resources/medusa-cli/commands/build))
 - [ ] **Define packages/contracts/src/product.ts.** Export ProductMetaV1Schema and ProductMetaV1 = z.infer<typeof ProductMetaV1Schema>. Use a strict Zod schema: schema_version is literal 1; availability is ready|made_to_order|custom; processes is an array of FDM|SLA|SLS|MJF with max 4; lead_time_days is a non-negative integer; lead_time_label is bounded; materials and finishes are bounded arrays of controlled keys; dimensions have positive width/height/depth and unit mm|cm; weight_grams is a positive integer; care, edition, designer_note are bounded; glb_url and poster_url require HTTPS; seo.title/description are bounded. Reject unknown keys and invalid URLs. Do not put quote analysis, consent, private keys, custom-work prices, or commission state in product metadata.
@@ -2073,22 +2104,23 @@ export type ProductMetaV1 = z.infer<typeof ProductMetaV1Schema>
 
 ### 9.5 Phase 2 — Next.js storefront spine
 
-- [ ] **Create apps/storefront.** Use Next.js App Router, strict TypeScript, and React compatible with the pinned Next.js/Medusa SDK. Add @medusajs/js-sdk, @medusajs/types, @tanstack/react-query v5, zod, @stripe/stripe-js, @stripe/react-stripe-js, @google/model-viewer, three, lucide-react, and meilisearch only where used. Keep package.json, next.config.ts, tsconfig.json, eslint.config.mjs, and .env.example inside apps/storefront/.
-- [ ] **Use this App Router structure.** apps/storefront/src/app/layout.tsx owns fonts, global CSS, metadata defaults, and providers; app/(store)/layout.tsx owns announcement/header/footer; app/(store)/page.tsx is home. Add pages at (store)/shop/page.tsx, (store)/shop/[category]/page.tsx, (store)/shop/[category]/[subcategory]/page.tsx, (store)/products/[handle]/page.tsx, (store)/collections/[slug]/page.tsx, (store)/search/page.tsx, (store)/portrait-studio/page.tsx, (store)/custom-printing/page.tsx, (store)/projects/page.tsx, (store)/projects/[slug]/page.tsx, (store)/materials/page.tsx, (store)/reviews/page.tsx, (store)/cart/page.tsx, (store)/checkout/page.tsx, and (store)/account/.... Add app/sitemap.ts, app/robots.ts, app/not-found.tsx, and app/error.tsx.
+- [ ] **Create apps/storefront.** Use Next.js App Router, strict TypeScript, and React compatible with the pinned Next.js/Medusa SDK. Add @medusajs/js-sdk, @medusajs/types, @tanstack/react-query v5, zod, next-intl, @stripe/stripe-js, @stripe/react-stripe-js, @google/model-viewer, three, lucide-react, and meilisearch only where used. Keep package.json, next.config.ts, tsconfig.json, eslint.config.mjs, and .env.example inside apps/storefront/.
+- [ ] **Use this App Router structure.** apps/storefront/src/app/layout.tsx owns fonts, global CSS, metadata defaults, and providers; app/[locale]/layout.tsx owns locale providers and `generateStaticParams` for `ro` and `en`; app/[locale]/(store)/layout.tsx owns announcement/header/footer; app/[locale]/(store)/page.tsx is home. Add pages at `[locale]/(store)/shop/page.tsx`, `shop/[category]/page.tsx`, `shop/[category]/[subcategory]/page.tsx`, `products/[handle]/page.tsx`, `collections/[slug]/page.tsx`, `search/page.tsx`, `portrait-studio/page.tsx`, `custom-printing/page.tsx`, `projects/page.tsx`, `projects/[slug]/page.tsx`, `materials/page.tsx`, `reviews/page.tsx`, `cart/page.tsx`, `checkout/page.tsx`, and `account/...`. Redirect `/` to `/ro`; add app/sitemap.ts, app/robots.ts, app/not-found.tsx, and app/error.tsx.
 - [ ] **Create the shared presentation tree.** Put components in apps/storefront/src/components/: site/announcement-bar.tsx, site/header.tsx, site/mega-menu.tsx, site/mobile-menu.tsx, site/footer.tsx, home/hero-slider.tsx, home/discipline-index.tsx, product/product-gallery.tsx, product/product-3d-viewer.tsx, cart/cart-drawer.tsx, checkout/checkout-form.tsx, and ui/. Put tokens and ported CSS in src/styles/tokens.css and src/styles/globals.css. Preserve premium spacing, rounded surfaces, subtle glass/light, white space, and reduced-motion behavior; do not replace the brand system with a generic UI kit.
 - [ ] **Create the Medusa SDK boundary.** Add apps/storefront/src/lib/medusa/sdk.server.ts with server-only and @medusajs/js-sdk, initialized from MEDUSA_BACKEND_URL and MEDUSA_PUBLISHABLE_KEY. Add sdk.browser.ts with only NEXT_PUBLIC_MEDUSA_URL and NEXT_PUBLIC_MEDUSA_PUBLISHABLE_KEY. Never import the server SDK into a Client Component. Never expose Admin API keys, Stripe secret keys, R2 credentials, or customer session secrets through NEXT_PUBLIC_*. Add src/lib/medusa/queries/ and mappers/ for narrow reads and DTO mapping. Validate metadata.forma with ProductMetaV1Schema before rendering.
 - [ ] **Fetch public SEO data in Server Components.** Product, category, collection, and region reads execute on the server with @medusajs/js-sdk and request only fields used by the page. Set explicit Next cache/revalidation tags for public catalog data; invalidate only from signature-verified webhooks. Use no-store for cart, customer, stock-sensitive checkout, quotes, commissions, pricing, and private assets. Do not make SEO routes into client-fetch shells.
 - [ ] **Use Client Components only at interaction boundaries.** Add "use client" only for event handlers, browser APIs, TanStack Query, WebGL, Stripe Elements, or local state. Create apps/storefront/src/components/providers/query-provider.tsx with one browser QueryClient and stable query keys. Use TanStack Query v5 for typeahead, filter updates, upload progress, and optimistic cart controls; reconcile all mutations with server responses. Do not install/import medusa-react, @medusajs/medusa-react, the v1 JS client, or replace Server Component reads with client fetching. ([SDK](https://docs.medusajs.com/resources/js-sdk), [v1-to-v2 changes](https://docs.medusajs.com/learn/introduction/from-v1-to-v2), [Server Components](https://nextjs.org/docs/app/getting-started/server-and-client-components))
 - [ ] **Create the cart data-access layer.** Store the opaque Medusa cart ID in a Secure, HttpOnly, SameSite=Lax cookie scoped to the storefront. Implement server-only src/lib/cart/get-cart.ts, create-cart.ts, mutate-cart.ts, and cookie.ts. Before every mutation, load the cart and verify region, sales channel, owner/customer association, line-item eligibility, and server totals. Never trust client prices, discounts, inventory, quote IDs, commission IDs, or ownership.
+- [ ] **Implement the EUR indicative display.** Add a server-only `src/lib/currency/display.ts` that converts RON totals to EUR using `EUR_TO_RON_DISPLAY_RATE` and its date, rounds deterministically, and returns a DTO with a “indicative EUR” label. Never send the converted amount to Medusa, checkout, analytics purchase values, or JSON-LD. Show the RON total as authoritative everywhere.
 - [ ] **Implement UI-to-backend mutation boundaries.** Add Server Actions in apps/storefront/src/app/(store)/actions/ for same-origin cart/account forms. Add Route Handlers in apps/storefront/src/app/api/ only for streaming uploads, explicit HTTP APIs, signed revalidation webhooks, and callbacks. Every handler parses a strict Zod schema, authenticates, authorizes ownership, checks origin/CSRF, rate-limits, uses idempotency for create/charge actions, and returns a minimal DTO. Private Medusa calls run in the server data-access layer; never call Admin APIs from browser code. Treat every Server Action as a public POST endpoint. ([Server Actions](https://nextjs.org/docs/app/getting-started/mutating-data), [data security](https://nextjs.org/docs/app/guides/data-security))
 - [ ] **Build site navigation.** Implement announcement bar, desktop mega menu, mobile accordion, search overlay, account/bag controls, and footer. Mega-menu links derive from Medusa's ten categories and point to real category/collection routes. Implement keyboard disclosure semantics, Escape, focus return, active route state, and touch-sized targets.
 - [ ] **Build the home page from real records.** Implement three hero slides with personalized busts first, curated objects second, custom printing third. Each slide has one primary CTA, keyboard controls, persistent pause control, and disables rotation for reduced motion. Follow Section 4 ordering: hero, trust strip, portrait, studio picks/ready to ship, ten disciplines, custom printing, selected projects, materials/reviews, newsletter/footer. Show only genuine products/projects/reviews; use the designed empty review state until real reviews exist.
 - [ ] **Build catalog pages.** /shop uses server-rendered search/filter/sort/pagination with URL query parameters as canonical state. Category/subcategory pages resolve Medusa handles and unique copy; suppress a leaf page unless it has at least three real products and distinct content. Product pages resolve by handle and show variants, price, availability/lead time, gallery, related products, real reviews or empty state, and optional GLB/AR poster.
 - [ ] **Build server-only Meilisearch integration.** Create src/lib/search/meilisearch.server.ts; only server code reads MEILISEARCH_API_KEY. Index published products/categories and later CMS projects through a controlled sync job. Search overlay calls a same-origin Route Handler with bounded Zod query/page-size fields and receives a minimal result DTO. Never index private quotes or commissions.
-- [ ] **Implement Medusa cart and checkout.** Cart drawer/page reads server cart state. Checkout order: validate cart → collect address → fetch available shipping options → select option → refresh cart/tax/total → create/reuse Payment Collection → initialize Stripe Payment Session through Medusa → render @stripe/react-stripe-js with only Medusa session client data → complete cart through Medusa. Handle 3DS/additional action, pending authorization, and payment failure. Never call Stripe secret APIs from the storefront.
+- [ ] **Implement Medusa cart and checkout.** Cart drawer/page reads server cart state. Checkout order: validate cart → collect address → fetch available Romania shipping options → select option → refresh cart/tax/total → create/reuse Payment Collection → initialize Stripe Payment Session through Medusa → render @stripe/react-stripe-js with only Medusa session client data → complete cart through Medusa. Keep the cart and all payment totals in RON; display EUR only as the labelled indicative conversion. Handle 3DS/additional action, pending authorization, and payment failure. Never call Stripe secret APIs from the storefront.
 - [ ] **Implement order confirmation and account basics.** Use Medusa customer auth/session APIs through server SDK and secure cookies. Add order list/detail pages with ownership-scoped queries. Return the same neutral not-found response for an unknown ID and another customer's ID. Do not put auth tokens in localStorage.
 - [ ] **Add loading/error states.** Add route loading.tsx/error.tsx, skeletons, empty cart/search, unavailable variant, stale quote, payment recovery, 404, and 500. Keep errors free of SQL, provider, storage, and stack details.
-- [ ] **Add SEO metadata.** Use Next Metadata API per public page; canonical URLs for products/categories/collections/projects; sitemap.ts from published content; robots.ts noindex for search/cart/checkout/account; JSON-LD only for real Organization/Product/Offer/Review/Breadcrumb records. Never output fabricated rating aggregates or inventory counts.
+- [ ] **Add SEO metadata.** Use Next Metadata API per public page; canonical URLs for products/categories/collections/projects; `hreflang` alternates for `/ro` and `/en`; sitemap.ts from published content; robots.ts noindex for search/cart/checkout/account; JSON-LD only for real Organization/Product/Offer/Review/Breadcrumb records and only in RON. Never output fabricated rating aggregates or inventory counts.
 - [ ] **Port 3D with budgets.** Use three only in dynamically imported Client Components; cap DPR, pause when hidden/offscreen, respect prefers-reduced-motion, and show a poster while loading. Put product GLBs in the public asset bucket and render through @google/model-viewer. Never use customer uploads in the public GLB flow. Provide image/description fallbacks.
 - [ ] **Add consent-gated analytics.** Keep allowlisted events in src/lib/analytics/consent.ts and events.ts. Never send emails, names, addresses, photos, model files, object keys, signed URLs, quote geometry, payment identifiers, or free-text notes. Deduplicate server-verified purchase events by Order ID.
 - [ ] **Verify against the current design baseline.** Compare desktop/mobile home, mega menu, shop, category, product, cart, checkout, and portrait landing. Check keyboard navigation, focus, reduced motion, image loading, and horizontal overflow. Keep Vite runnable in legacy/ until route/content parity is accepted.
@@ -2539,18 +2571,19 @@ export const QuoteEvent = model.define("quote_event", {
 
 ### 9.8 Phase 5 — Content, trust & SEO
 
-- [ ] Set up Sanity (or chosen CMS) and content schemas.
-- [ ] Migrate projects to the CMS; build index + detail pages.
-- [ ] Add 3 journal articles with SEO intent.
+- [ ] Set up Payload 3 in `apps/cms` with Neon Postgres, collections/globals for projects, journal, materials, homepage, About, and testimonials, ro/en localization, editor auth, strict CSP, and signed revalidation webhooks.
+- [ ] Migrate projects to Payload; build index + detail pages.
+- [ ] Add 3 journal articles with SEO intent in Romanian and English.
 - [ ] Build materials library + sample-pack product.
 - [ ] Build About/studio page with people, machines, and process.
-- [ ] Build verified reviews module and `/reviews`.
+- [ ] Build verified reviews module and `/reviews`; add the optional attributed Google reviews band without mixing it into product ratings.
 - [ ] Build Help/FAQ, shipping, returns, care, file guidelines, and Contact.
 - [ ] Add internal linking between products, categories, projects, materials, and articles.
-- [ ] Add OG images, structured data, sitemap, robots, and redirects.
-- [ ] Add real photography where available; label placeholders clearly.
+- [ ] Add OG images, structured data, sitemap, robots, hreflang, and redirects.
+- [ ] Commission and add real studio/people/product photography before public launch; label any remaining CGI or placeholder imagery clearly.
 - [ ] Add review request email after fulfillment.
 - [ ] Replace seeded reviews with real or clearly labelled testimonials.
+- [ ] Localize all customer-facing pages, legal copy, emails, and metadata into Romanian and English; keep RON as the only checkout currency.
 
 **Done when:** an editor can publish a project/article without a deploy; catalogue and service pages have unique SEO content; reviews are verified; help/legal pages are live.
 
@@ -2560,13 +2593,15 @@ export const QuoteEvent = model.define("quote_event", {
 - [ ] Performance audit against budgets; code-split 3D and optimize images.
 - [ ] Analytics/consent verification and funnel dashboards.
 - [ ] Sentry, uptime monitoring, and alerting.
-- [ ] Legal pages and cookie consent.
+- [ ] Legal pages and cookie consent; replace placeholders with the verified Romanian entity, address, contact email, and policy text.
+- [ ] Verify Romanian/EU consumer compliance: VAT-inclusive pricing, 14-day withdrawal right, custom/commission exemptions, ANPC/ODR links, and GDPR/cookie consent.
 - [ ] Cross-browser and real-device QA.
 - [ ] E2E suite, visual regression, and workflow integration tests.
 - [ ] Load test quote parser and checkout endpoints.
+- [ ] Verify RON checkout, EUR indicative display, Romanian VAT, and bilingual `/ro` + `/en` metadata before launch.
 - [ ] Deploy staging; run full purchase/commission/quote journeys.
 - [ ] Configure production domain, DNS, SSL, SPF/DKIM/DMARC.
-- [ ] Switch Stripe to live keys and webhooks; test a low-value order.
+- [ ] Switch Stripe to live keys and webhooks; test a low-value RON order.
 - [ ] Verify backups and restore process.
 - [ ] Prepare launch checklist, support inbox, and order notifications.
 - [ ] Update this plan and remove `legacy/` after parity.
@@ -2579,7 +2614,7 @@ export const QuoteEvent = model.define("quote_event", {
 - [ ] AR product previews and finish configurator refinements.
 - [ ] A/B test hero, home section order, and CTAs.
 - [ ] Trade/wholesale portal, saved quotes, net terms.
-- [ ] Multi-currency and localized content.
+- [ ] EU/EUR region, additional currencies/languages beyond RON/EUR and Romanian/English.
 - [ ] Gift cards, loyalty, referrals.
 - [ ] Journal cadence and SEO iterations.
 - [ ] Reviews with photos and UGC.
@@ -2605,7 +2640,10 @@ export const QuoteEvent = model.define("quote_event", {
 | Shipping/tax complexity | Surprise costs | Configure regions early; DDP where possible; clear lead times |
 | CMS/Medusa duplication | Inconsistent content | One source per data type; reference handles/IDs |
 | No real photography | Concept-like feel | Plan a studio shoot before launch; use CGI as interim |
-| No git history | Risky migration | Initialize git and tag the baseline before restructuring |
+| Migration baseline | Losing the reference implementation | Baseline tag `baseline-static-site` created; keep `legacy/` until parity |
+| RON price migration | Wrong margins or misleading “from” prices | Record the conversion/reprice decision; seed only reviewed RON prices; remove USD-style placeholders |
+| Romanian VAT/consumer law | Non-compliant pricing, returns or cookie consent | Confirm VAT rate with the accountant; publish EU 14-day withdrawal and custom-goods exemptions; legal review before launch |
+| Payload CMS ops | Editor lockout or stale content | Managed Neon Postgres, backups, signed revalidation webhooks, least-privilege editor roles |
 | Chunk size / Three.js | Slow initial load | Code-split, lazy-load, performance budget |
 | Accessibility regressions | Excludes users, legal risk | Keyboard/focus tests, axe, reduced motion, manual audit |
 | Admin operational burden | Orders/commissions fall through | Commission board, quote queue, email notifications, clear SLAs |
@@ -2651,6 +2689,16 @@ export const QuoteEvent = model.define("quote_event", {
 | 2026-10-28 | Staff role granularity | Open | Security review proposes ops, artist, finance, admin with server-side per-route checks; confirm the staffing policy before the first Commission DML migration, not merely before Phase 3. |
 | 2026-10-28 | Hard upload-size gateway | Open | Prefer Cloudflare Worker streaming cap. If not selected, document residual R2 size/cost risk and require finalize checks, quotas, and alarms before Phase 4 release. |
 | 2026-10-28 | Cancellation/refund policy | Open | Define the commercial cancellation window, refund/void handling, and role required before enabling Commission cancellation or refunds. Until approved, keep cancellation commands disabled. |
+| 2026-10-28 | Section 3 launch decisions: truthful 14-product seed designed for 40–60; custom quote rules (FDM/SLA/SLS, STL/OBJ/3MF instant, STEP manual review); managed services; no wholesale | Confirmed | Recorded in Sections 2.1, 2.2, and 3. Actual quote rates/build envelope still required before enabling instant pricing. |
+| 2026-10-28 | CMS: **Payload 3** on Neon Postgres (`apps/cms`) instead of Sanity | Confirmed | Supersedes the 2026-10-27 Sanity default. Payload runs as a Next.js app with ro/en localization; commerce stays in Medusa. |
+| 2026-10-28 | Launch market/currency: Romania only; RON checkout; EUR indicative display only; `/ro` default and `/en` | Confirmed | Medusa enforces one currency per region and one region per country, so a real EUR checkout requires an EU/EUR region with shipping. EUR conversion is display-only and never reaches cart/order/payment totals. |
+| 2026-10-28 | Tax/returns: VAT-inclusive prices, Romanian VAT via Medusa tax; EU 14-day withdrawal on stock; custom/commission non-returnable after proof approval | Confirmed | Confirm the current Romanian VAT rate with the accountant before launch. Carrier and shipping rates remain TBD. |
+| 2026-10-28 | Reviews: custom verified Medusa module plus an optional attributed Google reviews band | Confirmed | Google reviews are not verified purchase reviews and never feed product rating aggregates or `Review` structured data. |
+| 2026-10-28 | Photography: CGI for launch; real studio/people/product photography before public launch | Confirmed | Label any remaining CGI or placeholder imagery clearly. |
+| 2026-10-28 | Portrait pricing | Open | Explicitly deferred. Build config-driven pricing; publish no portrait numbers until real costs/margins are supplied. |
+| 2026-10-28 | Product price migration to RON | Open | Blocks Phase 1 catalogue seeding. Current USD-style numbers are placeholders; do not seed them as RON without a documented conversion/margin review. |
+| 2026-10-28 | Legal entity/address/contact email/domain/social handles | Open | Placeholders remain (`studio@forma.example`, Brooklyn address). Replace with verified Romanian details before launch; never publish placeholders. |
+| 2026-10-28 | Baseline tag `baseline-static-site` created | Confirmed | Marks the pre-migration Vite concept site; `npm run build` passes with 920.13 kB JS (252.11 kB gzip). |
 
 ---
 
@@ -2681,6 +2729,13 @@ export const QuoteEvent = model.define("quote_event", {
 ---
 
 ## 13. Session log
+### 2026-10-28 — Phase 0 decisions, baseline tag
+
+- Created annotated tag `baseline-static-site` on the clean `main` tree after verifying `npm run build` (920.13 kB JS / 252.11 kB gzip, CSS 115.52 kB / 21.54 kB gzip).
+- Reviewed and recorded Section 3 decisions with the user: truthful 14-product seed designed for 40–60; Payload 3 on Neon Postgres instead of Sanity; Romania-only launch with RON checkout and EUR indicative display; Romanian-primary/English-secondary `/ro` + `/en` routing; VAT-inclusive pricing with Romanian VAT via Medusa tax; EU 14-day stock returns and custom non-returnable after proof approval; custom verified reviews plus an attributed Google band; CGI now with real photography before launch; managed infrastructure; no wholesale.
+- Kept portrait pricing and product RON pricing explicitly open; documented them as Phase 0/Phase 1 blockers rather than inventing numbers. Legal entity, address, contact email, and domain remain placeholders until verified.
+- Updated Sections 0–2, 3, 5–7, 8, 9.3–9.10, 10, 11, and 14 to remove the Sanity/USD assumptions. No application source changed; the mobile-menu Playwright timeout remains the next engineering task.
+
 ### 2026-10-28 — Adversarial security POV adopted
 
 - Added Section 8.7 with the supplied threat model, findings, control specifications, validation contracts, hostile fixtures, CI gates, staging acceptance criteria, residual risks, and Phase 3/4 task mapping.
@@ -2763,10 +2818,16 @@ scripts/renders.mjs
 
 ```text
 Next.js storefront   3000
+Payload CMS          3001
 Medusa backend       9000
 Medusa Admin SPA     standalone `.medusa/admin` artifact from `medusa build --admin-only`; `/app` only in the default combined Medusa build
 Meilisearch          7700
 ```
+
+### Baseline
+
+- `baseline-static-site` tag marks the pre-migration Vite concept site (commit 6fb1cf4).
+- The current Vite app stays runnable until the replacement reaches parity; then move it to `legacy/`.
 
 ### Attribution
 
