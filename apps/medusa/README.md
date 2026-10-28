@@ -30,6 +30,7 @@ pnpm --filter @forma/medusa seed
 pnpm --filter @forma/medusa verify:catalog
 pnpm --filter @forma/medusa verify:payments
 pnpm --filter @forma/medusa verify:payment-truth
+pnpm --filter @forma/medusa verify:notifications
 ```
 
 `seed` is idempotent: it looks up sales channels, regions, tax regions, stock
@@ -61,6 +62,16 @@ it matches the collection totals against the individual captures and refunds.
 It never calls the provider and never reads provider metadata, so it works
 whether or not a `payment.captured` event was delivered.
 
+`verify:notifications` renders the registered transactional templates, checks
+HTML escaping and unknown-template failure, and dispatches one notification
+through the Notification Module using the local `feed` provider. It never calls
+Resend. The adapter lives in `src/modules/resend-notification/`, with templates
+in `src/modules/resend-notification/templates/`. The Resend provider is
+registered only when `RESEND_API_KEY` and `RESEND_FROM` contain real,
+non-placeholder values; otherwise Medusa keeps its local provider. The provider
+logs the Resend message ID and never the API key or recipient address. Add and
+register a template before emitting a new template name.
+
 ## Environment rules
 
 - `DATABASE_URL`, `REDIS_URL`, `JWT_SECRET`, `COOKIE_SECRET`, and the three CORS
@@ -76,6 +87,10 @@ whether or not a `payment.captured` event was delivered.
   registered only when their values are present and are not `.env.example`
   placeholders. Missing values in development fall back to Medusa's
   in-memory/local defaults.
+- Resend is registered only when `RESEND_API_KEY` and `RESEND_FROM` are real
+  values. `RESEND_FROM` must be a verified sender such as
+  `FORMA <orders@your-domain>`; configure SPF, DKIM, and DMARC before sending
+  production order email.
 - `PUBLIC_ASSET_BASE_URL` is the public origin used to build catalogue image
   URLs during seeding. It defaults to `http://localhost:3000`; production must
   use the public R2/custom-domain origin.

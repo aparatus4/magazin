@@ -83,6 +83,46 @@ if (
   })
 }
 
+// Keep Medusa's local provider for the `feed` channel in every environment.
+// Register Resend only when real credentials are present, so development and CI
+// never attempt to send email with `.env.example` placeholders.
+const resendApiKey = env.RESEND_API_KEY
+const resendFrom = env.RESEND_FROM
+
+if (
+  resendApiKey &&
+  resendFrom &&
+  !isPlaceholderValue(resendApiKey) &&
+  !isPlaceholderValue(resendFrom)
+) {
+  modules.push({
+    resolve: "@medusajs/medusa/notification",
+    options: {
+      providers: [
+        {
+          resolve: "@medusajs/medusa/notification-local",
+          id: "local",
+          options: {
+            name: "Local Notification Provider",
+            channels: ["feed"],
+          },
+        },
+        {
+          resolve: "./src/modules/resend-notification",
+          id: "resend",
+          options: {
+            channels: ["email"],
+            apiKey: resendApiKey,
+            from: resendFrom,
+            storeName: "FORMA",
+            storeUrl: env.STORE_CORS?.split(",")[0]?.trim(),
+          },
+        },
+      ],
+    },
+  })
+}
+
 module.exports = defineConfig({
   projectConfig: {
     databaseUrl: env.DATABASE_URL,

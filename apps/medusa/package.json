@@ -11,6 +11,7 @@
     "verify:catalog": "medusa exec ./src/scripts/verify-catalog.ts",
     "verify:payments": "medusa exec ./src/scripts/verify-payment-provider.ts",
     "verify:payment-truth": "medusa exec ./src/scripts/verify-payment-truth.ts",
+    "verify:notifications": "medusa exec ./src/scripts/verify-notifications.ts",
     "start": "medusa start",
     "dev": "medusa develop",
     "typecheck": "tsc --noEmit",
@@ -27,6 +28,7 @@
     "@medusajs/draft-order": "2.22.1",
     "@medusajs/framework": "2.22.1",
     "@medusajs/medusa": "2.22.1",
+    "resend": "6.35.0",
     "zod": "4.6.7"
   },
   "devDependencies": {
