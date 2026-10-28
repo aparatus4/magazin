@@ -1,0 +1,13 @@
+packages:
+  - "apps/*"
+  - "packages/*"
+  - "legacy"
+
+allowBuilds:
+  '@medusajs/telemetry': false
+  '@swc/core': true
+  esbuild: true
+  msgpackr-extract: true
+  protobufjs: true
+  sharp: false
+  unrs-resolver: false

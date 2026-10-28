@@ -12,7 +12,11 @@ out/
 .turbo/
 .cache/
 .medusa/
+.pnpm-store/
 npm-cache-temp/
+
+# TypeScript build info
+*.tsbuildinfo
 
 # Test output
 coverage/

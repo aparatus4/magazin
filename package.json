@@ -1,27 +1,26 @@
 {
-  "name": "forma-studio",
+  "name": "forma",
+  "version": "0.0.0",
   "private": true,
-  "version": "1.0.0",
-  "type": "module",
-  "scripts": {
-    "dev": "vite --host 127.0.0.1",
-    "build": "tsc -b && vite build",
-    "preview": "vite preview --host 127.0.0.1",
-    "typecheck": "tsc -b --noEmit"
+  "packageManager": "pnpm@11.25.0",
+  "engines": {
+    "node": ">=24.22.1",
+    "pnpm": ">=11.25.0 <12"
   },
-  "dependencies": {
-    "lucide-react": "0.468.0",
-    "react": "18.3.1",
-    "react-dom": "18.3.1",
-    "three": "0.170.0"
+  "scripts": {
+    "build": "pnpm -r --if-present build",
+    "typecheck": "pnpm -r --if-present typecheck",
+    "test": "pnpm -r --if-present test",
+    "lint": "pnpm -r --if-present lint",
+    "dev:legacy": "pnpm --dir legacy dev",
+    "build:legacy": "pnpm --dir legacy build",
+    "test:legacy": "node scripts/functional-test.mjs",
+    "contracts:build": "pnpm --filter @forma/contracts build",
+    "format:check": "prettier --check ."
   },
   "devDependencies": {
-    "@types/react": "18.3.12",
-    "@types/react-dom": "18.3.1",
-    "@types/three": "0.170.0",
-    "@vitejs/plugin-react": "4.3.4",
-    "playwright-core": "^1.64.1",
-    "typescript": "5.6.3",
-    "vite": "5.4.11"
+    "playwright-core": "1.64.1",
+    "prettier": "3.9.10",
+    "typescript": "5.9.3"
   }
 }

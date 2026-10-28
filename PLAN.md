@@ -34,12 +34,12 @@
 | Field | Value |
 | --- | --- |
 | Current phase | **Phase 0 — Foundation** |
-| State | Section 3 decisions recorded 2026-10-28: truthful 14-product seed designed for 40–60, Payload CMS, Romania-only launch with RON checkout and EUR indicative display, Romanian-primary/English-secondary routing, VAT-inclusive pricing, EU 14-day stock returns, custom reviews plus a Google band, managed infrastructure, no wholesale. Baseline tag `baseline-static-site` created. The mobile-menu Playwright check is stabilized (13/13 on six consecutive runs). Implementation not started. |
-| Next action | Complete Phase 0 workspace/runtime/hosting setup: create the `migration/medusa` branch, pin Node/pnpm, create the pnpm workspace and `packages/contracts`, move the Vite app to `legacy/`, scaffold the apps, add env examples/README/CI, and create the managed-service projects. |
+| State | Workspace scaffolded and verified on 2026-10-28: Node 24.22.2 + pnpm 11.25.0 pinned; pnpm workspace with `apps/storefront` (Next.js 16.4.3), `apps/medusa` (Medusa 2.22.1), `apps/cms` (Payload 3.92.1), `packages/contracts`, and the preserved Vite app in `legacy/`. `pnpm build`, `pnpm typecheck`, `pnpm lint`, and the 13-check legacy Playwright suite pass. Phase 0 decisions remain recorded; portrait/product pricing and legal details stay open. |
+| Next action | Add CI (lint/typecheck/build/legacy tests, then security invariants when `scripts/security/check-invariants.sh` exists), add the `apps/private-media-worker` Phase 0 placeholder, document the visual baseline, and create the managed-service projects (user-assisted). Then start Phase 1 (Medusa foundation). |
 | Blocking decisions | Phase 0: portrait pricing (deferred; config-driven, no published numbers), product price migration to RON, legal entity/address/contact/domain, and managed-service accounts. Before the first Commission DML migration: staff-role policy. Before enabling cancellation/refund commands: cancellation/refund policy. Before Phase 3 release: private-asset delivery, retention periods, and hard upload-size gateway. |
-| Current app | Vite + React concept storefront at `http://127.0.0.1:5173` |
-| Current verification | `npm run build` passes; `node scripts/functional-test.mjs` passes 13/13 (six consecutive runs on 2026-10-28). |
-| Workspace | `E:\dev\rob\maga` (Windows, PowerShell; current Node 20.10 must be upgraded to the pinned Medusa-supported runtime in Phase 0) |
+| Current app | Legacy Vite + React concept storefront in `legacy/` at `http://127.0.0.1:5173`; new apps are scaffolds, not runnable storefronts yet. |
+| Current verification | `pnpm build` passes (contracts, storefront, CMS, Medusa backend + Admin, legacy); `pnpm typecheck` and `pnpm lint` pass; `pnpm test:legacy` passes 13/13 on 2026-10-28. |
+| Workspace | `E:\dev\rob\maga` (Windows, PowerShell; Node 24.22.2 via Nodist, pnpm 11.25.0) |
 
 ### 0.2 Resume protocol
 
@@ -196,7 +196,7 @@ Product principles:
 - 3D element screenshots do not capture WebGL canvas content; use viewport screenshots.
 - The head scan is **LeePerrySmith.glb**, CC BY 3.0. Attribution is required in the footer and in any new product page that uses it.
 - The current catalogue copy advertises “86+”, “64+”, etc. while only 14 products exist. Resolve this before launch.
-- The current app is the design reference. Do not delete it until the replacement reaches parity; it is preserved in the `baseline-static-site` tag and will move to `legacy/`.
+- The current app is the design reference. Do not delete it until the replacement reaches parity; it is preserved in the `baseline-static-site` tag and now lives in `legacy/`.
 
 ### 1.6 Demo-only features (must become real or be labelled)
 
@@ -1990,7 +1990,7 @@ Section 11 is the sole source of truth for decision status, owner, and gate. Res
 
 | Phase | Name | Status | Est. effort |
 | --- | --- | --- | --- |
-| 0 | Foundation & decisions | **In progress — decisions recorded, baseline tagged; workspace/runtime setup next** | 0.5–1 day |
+| 0 | Foundation & decisions | **In progress — workspace scaffolded and verified; CI, worker placeholder, visual baseline, and managed-service accounts next** | 0.5–1 day |
 | 1 | Medusa foundation | Not started | 3–5 days |
 | 2 | Next.js storefront spine | Not started | 5–8 days |
 | 3 | Portrait Studio flow | Not started | 5–8 days |
@@ -2027,19 +2027,20 @@ AR, trade/wholesale, multi-currency, loyalty, and advanced personalization can f
 - [x] Add `.gitignore` and remove tracked generated output (`dist/`, `node_modules/`, and `npm-cache-temp/`) from the Git index while preserving local files.
 - [x] Create a baseline tag for the current static site before restructuring: `baseline-static-site` (2026-10-28).
 - [x] Create `AGENTS.md` pointing to this plan (done during planning).
-- [ ] Create a `migration/medusa` branch for the rebuild; merge in phase-sized increments.
-- [ ] Pin the workspace runtime: upgrade Node to the exact Medusa-supported version (current CLI docs require ≥22.22.0), pin pnpm, and record the versions in the root README and lockfile.
-- [ ] Create pnpm workspace: `apps/storefront`, `apps/medusa`, `apps/cms`, `apps/private-media-worker`, `packages/contracts`, and `legacy/`.
-- [ ] Create `packages/contracts` as workspace package `@forma/contracts`; build strict TypeScript/Zod contracts to `dist/` and export `./product`, `./commission`, `./quote`, and `./mesh-analysis` for both apps.
-- [ ] Document the RON/EUR display model and `/ro` + `/en` routing in the root README and app env examples; never let EUR display values reach checkout.
+- [x] Create a `migration/medusa` branch for the rebuild; merge in phase-sized increments.
+- [x] Pin the workspace runtime: Node 24.22.2 (Nodist + `.node-version`), pnpm 11.25.0 (`packageManager`), and record the versions in the root README and lockfile.
+- [x] Create pnpm workspace: `apps/storefront`, `apps/medusa`, `apps/cms`, `packages/contracts`, and `legacy/`.
+- [ ] Add the `apps/private-media-worker` Phase 0 placeholder package; the functional worker belongs to Phase 3.
+- [x] Create `packages/contracts` as workspace package `@forma/contracts`; build strict TypeScript/Zod contracts to `dist/` and export `./product`, `./commission`, `./quote`, and `./mesh-analysis` for both apps.
+- [x] Document the RON/EUR display model and `/ro` + `/en` routing in the root README and app env examples; never let EUR display values reach checkout.
 - [x] Resolve the current mobile-menu Playwright timeout (`node scripts/functional-test.mjs`: 12/13 on two runs), rerun the 13-check baseline, and update these metrics before moving the Vite app to `legacy/`. Closed the desktop page before the mobile check and wait for header hydration; 13/13 on six consecutive runs.
-- [ ] Move the current Vite app to `legacy/` (or preserve it in git history and keep a reference copy).
-- [ ] Scaffold Medusa v2, Next.js storefront, and Payload CMS apps; pin exact versions; document them.
-- [ ] Add `.env.example` for each app and a root README.
+- [x] Move the current Vite app to `legacy/` (or preserve it in git history and keep a reference copy).
+- [x] Scaffold Medusa v2, Next.js storefront, and Payload CMS apps; pin exact versions; document them.
+- [x] Add `.env.example` for each app and a root README.
 - [ ] Add CI: install pnpm and ripgrep before running `scripts/security/check-invariants.sh`; run lint, typecheck, build, tests, security invariants, and migration checks.
 - [ ] Create accounts/projects (user-assisted): Neon (Medusa + Payload), Upstash, R2, Stripe test, Resend, Meilisearch, Vercel, Railway/Fly.
 - [ ] Document the visual baseline and screenshot references.
-- [ ] Update the current-focus block.
+- [x] Update the current-focus block.
 
 **Done when:** the workspace installs and builds; the legacy site is recoverable; apps start; env docs exist; CI is green; decisions are recorded.
 
@@ -2729,6 +2730,16 @@ export const QuoteEvent = model.define("quote_event", {
 ---
 
 ## 13. Session log
+### 2026-10-28 — Phase 0 workspace scaffold
+
+- Pinned Node 24.22.2 (Nodist + `.node-version`) and pnpm 11.25.0; created the root pnpm workspace (`package.json`, `pnpm-workspace.yaml`, `tsconfig.base.json`, `README.md`) and moved the Vite app to `legacy/` with `git mv`.
+- Built `packages/contracts` (`@forma/contracts`) with strict Zod contracts for products, commissions, quotes, and mesh analysis, exported as `./product`, `./commission`, `./quote`, and `./mesh-analysis`.
+- Scaffolded `apps/storefront` (Next.js 16.4.3), `apps/medusa` (Medusa 2.22.1, Admin included), and `apps/cms` (Payload 3.92.1 on Postgres, ro/en localization). Added `.env.example` and README files for each app.
+- Fixed the Medusa Admin build by declaring `@medusajs/admin-shared` directly in `apps/medusa/package.json`; pnpm's strict layout does not expose the bundler's transitive copy to the generated `virtual:medusa/i18n` module.
+- Fixed the manually scaffolded Payload app: removed the removed `generatePayloadViewport` export, switched `build` from the removed `payload build` command to `next build`, pointed Turbopack at the workspace root so pnpm links resolve, added an ESLint 9 flat config, and replaced the raw `<a>` admin link with `next/link`.
+- Fixed legacy typechecking in the monorepo: aligned `@types/react`/`@types/react-dom` with Medusa's React 18 types and mapped `react` to the legacy copy so hoisted React 19 types from the new apps cannot leak into `legacy/`; replaced `tsc -b --noEmit` with explicit project checks. Removed the obsolete `inApp` option from the Medusa health integration test.
+- Verified on 2026-10-28: `pnpm install`, `pnpm build` (contracts, storefront, CMS, Medusa backend + Admin, legacy), `pnpm typecheck`, `pnpm lint`, and `pnpm test:legacy` (13/13) all pass. Remaining Phase 0 work: CI, the `apps/private-media-worker` placeholder, visual baseline docs, and user-assisted managed-service projects.
+
 ### 2026-10-28 — Phase 0 mobile-menu baseline stabilized
 
 - Reproduced the intermittent mobile-menu failure: `getByRole('button', { name: 'Open menu' })` timed out because the mobile page had not hydrated while the desktop page's software-rendered 3D hero was still running.
