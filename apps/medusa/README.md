@@ -79,7 +79,9 @@ text object, checks the returned URL, reads it back through the provider,
 downloads it through a presigned URL, optionally checks the unauthenticated
 public URL, and deletes the object again. It fails when the `R2_PUBLIC_*` values
 are missing or still placeholders. Set `SKIP_PUBLIC_CHECK=true` for a private
-test bucket; upload, presigning, and deletion are still verified.
+test bucket; upload, presigning, and deletion are still verified. A private B2
+bucket returns HTTP 401 for the public URL, so keep the flag set until the
+bucket is public or R2 is configured.
 
 The provider supports Cloudflare R2 (production) and Backblaze B2 (temporary
 testing). Both use bucket-level public access; object ACLs are disabled because
