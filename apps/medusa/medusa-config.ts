@@ -62,6 +62,25 @@ if (
   env.R2_PUBLIC_SECRET_ACCESS_KEY &&
   env.R2_PUBLIC_URL
 ) {
+  // `acl: false` omits the `x-amz-acl` header. Backblaze B2 does not support
+  // object ACLs, and public access is configured on the bucket instead. R2 also
+  // uses bucket-level public access, so the setting is safe for both providers.
+  const publicFileOptions: Record<string, unknown> = {
+    file_url: env.R2_PUBLIC_URL,
+    access_key_id: env.R2_PUBLIC_ACCESS_KEY_ID,
+    secret_access_key: env.R2_PUBLIC_SECRET_ACCESS_KEY,
+    region: env.R2_PUBLIC_REGION ?? "auto",
+    bucket: env.R2_PUBLIC_BUCKET,
+    endpoint: env.R2_PUBLIC_ENDPOINT,
+    acl: false,
+  }
+
+  // B2 supports virtual-hosted-style requests; path style is available as an
+  // escape hatch for S3-compatible providers that do not.
+  if (env.R2_PUBLIC_FORCE_PATH_STYLE === "true") {
+    publicFileOptions.additional_client_config = { forcePathStyle: true }
+  }
+
   modules.push({
     resolve: "@medusajs/medusa/file",
     options: {
@@ -69,14 +88,7 @@ if (
         {
           resolve: "@medusajs/medusa/file-s3",
           id: "s3",
-          options: {
-            file_url: env.R2_PUBLIC_URL,
-            access_key_id: env.R2_PUBLIC_ACCESS_KEY_ID,
-            secret_access_key: env.R2_PUBLIC_SECRET_ACCESS_KEY,
-            region: "auto",
-            bucket: env.R2_PUBLIC_BUCKET,
-            endpoint: env.R2_PUBLIC_ENDPOINT,
-          },
+          options: publicFileOptions,
         },
       ],
     },

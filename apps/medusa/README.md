@@ -31,6 +31,7 @@ pnpm --filter @forma/medusa seed
 pnpm --filter @forma/medusa verify:catalog
 pnpm --filter @forma/medusa verify:payments
 pnpm --filter @forma/medusa verify:payment-truth
+pnpm --filter @forma/medusa verify:files
 pnpm --filter @forma/medusa verify:notifications
 ```
 
@@ -73,6 +74,22 @@ non-placeholder values; otherwise Medusa keeps its local provider. The provider
 logs the Resend message ID and never the API key or recipient address. Add and
 register a template before emitting a new template name.
 
+`verify:files` exercises the public catalogue file provider: it uploads a small
+text object, checks the returned URL, reads it back through the provider,
+downloads it through a presigned URL, optionally checks the unauthenticated
+public URL, and deletes the object again. It fails when the `R2_PUBLIC_*` values
+are missing or still placeholders. Set `SKIP_PUBLIC_CHECK=true` for a private
+test bucket; upload, presigning, and deletion are still verified.
+
+The provider supports Cloudflare R2 (production) and Backblaze B2 (temporary
+testing). Both use bucket-level public access; object ACLs are disabled because
+B2 does not support them. Set `R2_PUBLIC_REGION` to `auto` for R2 or the B2
+region (for example `us-west-004`). For B2, set
+`R2_PUBLIC_ENDPOINT=https://s3.<region>.backblazeb2.com` and, for a public
+bucket, `R2_PUBLIC_URL=https://<bucket>.s3.<region>.backblazeb2.com`.
+`R2_PUBLIC_FORCE_PATH_STYLE=true` is available only if a provider rejects
+virtual-hosted-style requests; B2 and R2 do not need it.
+
 ## Standalone Admin
 
 `admin:build` runs the pinned `medusa build --admin-only` and writes the Admin
@@ -87,21 +104,38 @@ The build prints an advisory warning when the Admin is enabled in
 `medusa-config.ts`; that is expected locally. In the production deployment,
 `ADMIN_DISABLED=true` removes the warning and the built-in dashboard.
 
+## Admin users
+
+Create the first Admin user with an invite. The command prints an invite token;
+deliver it over a secure channel and do not paste it into chat, tickets, or
+logs:
+
+```powershell
+pnpm --dir apps/medusa exec medusa user --email <operator-email> --invite
+```
+
+For local development, `--password` is supported, but run it in a terminal whose
+history is not recorded and never commit the value. The staff-role policy is
+still open, so until it is approved grant Admin accounts only to staff who need
+full access. Offboarding: delete the user in Admin → Settings → Users, rotate any
+API keys the user created, and review recent orders/settings changes. Re-run the
+invite flow for a replacement operator.
+
 ## Environment rules
 
 - `DATABASE_URL`, `REDIS_URL`, `JWT_SECRET`, `COOKIE_SECRET`, and the three CORS
   origins are required for every command except `medusa build`.
 - `medusa build` intentionally skips the required-value check so CI can build
   with dummy values. It still validates formats for any value that is present.
-- In production (`NODE_ENV=production`) Stripe, public R2, and Resend values are
-  also required. Placeholder values such as `replace_me`, `changeme`, or
+- In production (`NODE_ENV=production`) Stripe, public R2/B2, and Resend values
+  are also required. Placeholder values such as `replace_me`, `changeme`, or
   `supersecret` are rejected, and every CORS origin must be exact HTTPS.
 - `ADMIN_PATH` defaults to `/app`. Set `ADMIN_BACKEND_URL` only when the Admin
   SPA is hosted separately from the API. Set `ADMIN_DISABLED=true` in production
   when the standalone Admin build is served from its own static host; leave it
   `false` for local development at `/app`.
-- Stripe, the Redis workflow engine, and the public R2 file provider are
-  registered only when their values are present and are not `.env.example`
+- Stripe, the Redis workflow engine, and the public S3-compatible file provider
+  are registered only when their values are present and are not `.env.example`
   placeholders. Missing values in development fall back to Medusa's
   in-memory/local defaults.
 - Resend is registered only when `RESEND_API_KEY` and `RESEND_FROM` are real

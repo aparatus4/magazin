@@ -61,6 +61,15 @@ enable live mode before the Phase 6 launch checklist.
 Follow the variable list in `apps/medusa/.env.example`. Never give the parser
 sandbox an R2 credential.
 
+For temporary testing without a card, Backblaze B2 is an accepted S3-compatible
+stand-in; R2 remains the production provider. Create a bucket-restricted
+**Read and Write** application key and enable **Allow list all bucket names**.
+Set `R2_PUBLIC_ENDPOINT=https://s3.<region>.backblazeb2.com`,
+`R2_PUBLIC_REGION=<region>`, and, for a public bucket,
+`R2_PUBLIC_URL=https://<bucket>.s3.<region>.backblazeb2.com`. B2 public buckets
+require a verified email plus payment history or a small fee; a private bucket
+can still be verified with `SKIP_PUBLIC_CHECK=true`.
+
 ### Resend
 
 - [ ] Verify the production sending domain (SPF, DKIM, DMARC).

@@ -68,6 +68,11 @@ export const RuntimeEnvSchema = z
     STRIPE_WEBHOOK_SECRET: optionalString,
 
     R2_PUBLIC_ENDPOINT: optionalUrl,
+    R2_PUBLIC_REGION: optionalString,
+    R2_PUBLIC_FORCE_PATH_STYLE: z.preprocess(
+      emptyToUndefined,
+      z.enum(["true", "false"]).optional(),
+    ),
     R2_PUBLIC_BUCKET: optionalString,
     R2_PUBLIC_ACCESS_KEY_ID: optionalString,
     R2_PUBLIC_SECRET_ACCESS_KEY: optionalString,
