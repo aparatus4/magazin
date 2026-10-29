@@ -81,7 +81,11 @@ public URL, and deletes the object again. It fails when the `R2_PUBLIC_*` values
 are missing or still placeholders. Set `SKIP_PUBLIC_CHECK=true` for a private
 test bucket; upload, presigning, and deletion are still verified. A private B2
 bucket returns HTTP 401 for the public URL, so keep the flag set until the
-bucket is public or R2 is configured.
+bucket is public or R2 is configured. While the test bucket is private, keep
+`PUBLIC_ASSET_BASE_URL` on the storefront origin and do not upload catalogue
+images through Medusa Admin: the provider would store URLs that return 401. The
+seed's local `renders/` assets remain the catalogue source until R2 is
+configured.
 
 The provider supports Cloudflare R2 (production) and Backblaze B2 (temporary
 testing). Both use bucket-level public access; object ACLs are disabled because
