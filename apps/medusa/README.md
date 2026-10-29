@@ -110,6 +110,19 @@ The build prints an advisory warning when the Admin is enabled in
 `medusa-config.ts`; that is expected locally. In the production deployment,
 `ADMIN_DISABLED=true` removes the warning and the built-in dashboard.
 
+Once the static host is live, verify the deployed headers from the repository
+root:
+
+```powershell
+pnpm security:headers -- --storefront=https://staging.forma.example `
+  --admin=https://admin.staging.forma.example `
+  --asset=https://staging.forma.example/api/private-assets/<id>
+```
+
+The check fails on missing CSP/HSTS/COOP/permissions headers, cross-origin
+redirects, `unsafe-inline` scripts in the Admin CSP, and a private-asset
+response that is not `Cache-Control: private, no-store`.
+
 ## Admin users
 
 Create the first Admin user with an invite. The command prints an invite token;

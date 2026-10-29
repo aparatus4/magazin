@@ -55,7 +55,23 @@ pnpm test:legacy       # requires the legacy dev server on port 5173
 pnpm baseline:capture  # writes shots/baseline/ from the legacy dev server
 pnpm contracts:build
 pnpm typecheck
+pnpm security:headers  # staging storefront/Admin/private-asset response headers
 ```
+
+`pnpm security:headers` checks the deployed response headers and needs at least
+one target. Pass `--storefront`, `--admin`, and/or `--asset` (or set
+`STOREFRONT_URL`, `ADMIN_URL`, `PRIVATE_ASSET_URL`):
+
+```powershell
+pnpm security:headers -- --storefront=https://staging.forma.example `
+  --admin=https://admin.staging.forma.example `
+  --asset=https://staging.forma.example/api/private-assets/<id>
+```
+
+It verifies CSP, HSTS, `X-Content-Type-Options`, `Referrer-Policy`,
+Cross-Origin-Opener-Policy, Permissions-Policy, same-origin redirects, and
+`Cache-Control: private, no-store` on private assets. Admin CSP must not allow
+`unsafe-inline` scripts.
 
 `pnpm test:legacy` runs the 13-check Playwright baseline in
 `scripts/functional-test.mjs`. It expects Chrome or Edge at the paths the script
