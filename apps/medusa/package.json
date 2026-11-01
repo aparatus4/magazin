@@ -31,6 +31,7 @@
     "@medusajs/draft-order": "2.22.1",
     "@medusajs/framework": "2.22.1",
     "@medusajs/medusa": "2.22.1",
+    "@medusajs/ui": "4.2.8",
     "resend": "6.35.0",
     "zod": "4.6.7"
   },
